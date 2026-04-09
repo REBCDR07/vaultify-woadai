@@ -4,6 +4,7 @@ import { getRepoDetails, getRepoReadme, type GitHubRepo } from "@/lib/github";
 import { generateRepoDetail } from "@/lib/groq";
 import { useStore } from "@/store/useStore";
 import SaveModal from "@/components/favorites/SaveModal";
+import MarkdownReadme from "@/components/results/MarkdownReadme";
 import { Star, GitFork, Eye, AlertCircle, ExternalLink, Bookmark, ArrowLeft, Zap } from "lucide-react";
 
 const RepoDetail = () => {
@@ -198,10 +199,8 @@ const RepoDetail = () => {
         {readme && (
           <div className="mt-6">
             <h2 className="mb-3 font-label text-sm font-medium text-muted-foreground uppercase">README</h2>
-            <div className="max-h-96 overflow-y-auto rounded-xl border border-border bg-card p-5">
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground font-mono">
-                {readme.slice(0, 5000)}
-              </pre>
+            <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-border bg-card p-5">
+              <MarkdownReadme content={readme} />
             </div>
           </div>
         )}
