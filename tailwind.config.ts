@@ -14,6 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
+        heading: ["'Black Ops One'", "cursive"],
+        body: ["'DM Sans'", "sans-serif"],
         rajdhani: ["Rajdhani", "sans-serif"],
         display: ["Unbounded", "sans-serif"],
         label: ["Oswald", "sans-serif"],
