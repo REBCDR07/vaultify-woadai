@@ -122,10 +122,25 @@ export async function searchBeninDevelopers(
   query: string = "",
   page: number = 1,
   perPage: number = 30,
-  token?: string
+  token?: string,
+  filters?: { language?: string; minFollowers?: number; minRepos?: number }
 ): Promise<{ users: GitHubUser[]; totalCount: number }> {
-  const locationQuery = "location:Benin location:Cotonou location:Porto-Novo location:Parakou location:Abomey-Calavi";
-  const q = encodeURIComponent(query ? `${query} ${locationQuery}` : locationQuery);
+  // Broad location coverage for Benin
+  const locations = [
+    "Benin", "Bénin", "Cotonou", "Porto-Novo", "Parakou",
+    "Abomey-Calavi", "Abomey", "Bohicon", "Natitingou",
+    "Djougou", "Lokossa", "Ouidah", "Kandi", "Savalou"
+  ];
+  const locationQuery = locations.map(l => `location:"${l}"`).join(" ");
+
+  let qualifiers = "";
+  if (filters?.language) qualifiers += ` language:${filters.language}`;
+  if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
+  if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
+
+  const q = encodeURIComponent(
+    query ? `${query} ${locationQuery}${qualifiers}` : `${locationQuery}${qualifiers}`
+  );
   const res = await fetch(
     `${GITHUB_API}/search/users?q=${q}&sort=followers&order=desc&per_page=${perPage}&page=${page}`,
     { headers: getHeaders(token) }
@@ -133,6 +148,53 @@ export async function searchBeninDevelopers(
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
   const data = await res.json();
   return { users: data.items || [], totalCount: data.total_count || 0 };
+}
+
+// Deep search: run multiple parallel queries to catch more devs
+export async function deepSearchBeninDevelopers(
+  query: string = "",
+  token?: string,
+  filters?: { language?: string; minFollowers?: number; minRepos?: number }
+): Promise<{ users: GitHubUser[]; totalCount: number }> {
+  const locationGroups = [
+    ['Benin', 'Bénin', 'Cotonou'],
+    ['Porto-Novo', 'Abomey-Calavi', 'Parakou'],
+    ['Bohicon', 'Natitingou', 'Djougou', 'Ouidah', 'Lokossa'],
+  ];
+
+  let qualifiers = "";
+  if (filters?.language) qualifiers += ` language:${filters.language}`;
+  if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
+  if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
+
+  const promises = locationGroups.map(async (group) => {
+    const locQ = group.map(l => `location:"${l}"`).join(" ");
+    const q = encodeURIComponent(
+      query ? `${query} ${locQ}${qualifiers}` : `${locQ}${qualifiers}`
+    );
+    const res = await fetch(
+      `${GITHUB_API}/search/users?q=${q}&sort=followers&order=desc&per_page=50`,
+      { headers: getHeaders(token) }
+    );
+    if (!res.ok) return { items: [], total_count: 0 };
+    return res.json();
+  });
+
+  const results = await Promise.all(promises);
+  const seen = new Set<number>();
+  const merged: GitHubUser[] = [];
+  let total = 0;
+  for (const data of results) {
+    total = Math.max(total, data.total_count || 0);
+    for (const user of (data.items || [])) {
+      if (!seen.has(user.id)) {
+        seen.add(user.id);
+        merged.push(user);
+      }
+    }
+  }
+  // Sort by followers descending (from enriched data later, but id as proxy)
+  return { users: merged, totalCount: merged.length };
 }
 
 export async function getUserDetails(username: string, token?: string): Promise<GitHubUser> {
