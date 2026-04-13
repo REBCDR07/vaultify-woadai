@@ -1,4 +1,4 @@
-import { Star, GitFork, ExternalLink, Bookmark, Clock } from "lucide-react";
+import { Star, ExternalLink, Bookmark, Clock, Lightbulb, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface RepoCardProps {
@@ -11,6 +11,8 @@ interface RepoCardProps {
   license?: string;
   score?: number;
   summary?: string;
+  useCases?: string;
+  strengths?: string;
   onSave?: () => void;
   isSaved?: boolean;
 }
@@ -25,6 +27,8 @@ const RepoCard = ({
   license,
   score,
   summary,
+  useCases,
+  strengths,
   onSave,
   isSaved,
 }: RepoCardProps) => {
@@ -92,9 +96,29 @@ const RepoCard = ({
       )}
 
       {summary && (
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-4">
           {summary}
         </p>
+      )}
+
+      {useCases && (
+        <div className="mt-2 flex items-start gap-1.5">
+          <Lightbulb className="h-3 w-3 mt-0.5 shrink-0 text-warning" />
+          <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+            <span className="font-label text-foreground/70">Cas d'usage : </span>
+            {useCases}
+          </p>
+        </div>
+      )}
+
+      {strengths && (
+        <div className="mt-1.5 flex items-start gap-1.5">
+          <Trophy className="h-3 w-3 mt-0.5 shrink-0 text-accent" />
+          <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+            <span className="font-label text-foreground/70">Points forts : </span>
+            {strengths}
+          </p>
+        </div>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

@@ -40,6 +40,10 @@ interface VaultifyState {
   setGroqModel: (model: string) => void;
   addTokens: (count: number) => void;
 
+  // GitHub token
+  githubToken: string;
+  setGithubToken: (token: string) => void;
+
   // Onboarding
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
@@ -70,11 +74,13 @@ export const useStore = create<VaultifyState>()(
       groqApiKey: "",
       groqModel: DEFAULT_MODEL,
       totalTokensUsed: 0,
+      githubToken: "",
       onboardingDone: false,
 
       setGroqApiKey: (key) => set({ groqApiKey: key }),
       setGroqModel: (model) => set({ groqModel: model }),
       addTokens: (count) => set((s) => ({ totalTokensUsed: s.totalTokensUsed + count })),
+      setGithubToken: (token) => set({ githubToken: token }),
       setOnboardingDone: (done) => set({ onboardingDone: done }),
 
       favorites: [],

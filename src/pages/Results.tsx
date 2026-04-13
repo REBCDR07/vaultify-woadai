@@ -13,12 +13,14 @@ interface EnrichedRepo {
   repo: GitHubRepo;
   score?: number;
   summary?: string;
+  useCases?: string;
+  strengths?: string;
 }
 
 const Results = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
-  const { groqApiKey, groqModel, addTokens, addSearchLog, favorites } = useStore();
+  const { groqApiKey, groqModel, githubToken, addTokens, addSearchLog, favorites } = useStore();
 
   const [results, setResults] = useState<EnrichedRepo[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -58,7 +60,7 @@ const Results = () => {
       const repos = await searchReposParallel(queries, {
         language: filterLang || undefined,
         minStars: filterMinStars || undefined,
-      });
+      }, githubToken || undefined);
 
       // Step 3: Score with AI if key exists
       if (groqApiKey && repos.length > 0) {
@@ -74,7 +76,7 @@ const Results = () => {
           const enriched: EnrichedRepo[] = scored.map((s) => {
             const repo = repos.find((r) => r.full_name === s.full_name);
             return repo
-              ? { repo, score: s.score, summary: s.summary }
+              ? { repo, score: s.score, summary: s.summary, useCases: s.useCases, strengths: s.strengths }
               : null;
           }).filter(Boolean) as EnrichedRepo[];
 
@@ -109,7 +111,7 @@ const Results = () => {
     } finally {
       setLoading(false);
     }
-  }, [groqApiKey, groqModel, filterLang, filterMinStars, addTokens, addSearchLog]);
+  }, [groqApiKey, groqModel, githubToken, filterLang, filterMinStars, addTokens, addSearchLog]);
 
   useEffect(() => {
     performSearch(query);
@@ -183,7 +185,7 @@ const Results = () => {
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : results.map(({ repo, score, summary }) => (
+          : results.map(({ repo, score, summary, useCases, strengths }) => (
               <RepoCard
                 key={repo.id}
                 full_name={repo.full_name}
@@ -195,12 +197,16 @@ const Results = () => {
                 license={repo.license?.spdx_id}
                 score={score}
                 summary={summary}
+                useCases={useCases}
+                strengths={strengths}
                 isSaved={isSaved(repo.full_name)}
                 onSave={() =>
                   setSaveModal({
                     repo,
                     score,
                     summary,
+                    useCases,
+                    strengths,
                   })
                 }
               />
