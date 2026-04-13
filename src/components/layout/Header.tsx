@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, BookmarkIcon, Settings, Home } from "lucide-react";
+import { BookmarkIcon, Settings, Home, Users } from "lucide-react";
 
 const Header = () => {
   const location = useLocation();
@@ -18,6 +18,7 @@ const Header = () => {
         </Link>
         <nav className="flex items-center gap-1">
           <NavItem to="/home" icon={<Home className="h-4 w-4" />} label="Home" />
+          <NavItem to="/devs-benin" icon={<Users className="h-4 w-4" />} label="Devs 🇧🇯" />
           <NavItem to="/favorites" icon={<BookmarkIcon className="h-4 w-4" />} label="Favoris" />
           <NavItem to="/settings" icon={<Settings className="h-4 w-4" />} label="Paramètres" />
         </nav>

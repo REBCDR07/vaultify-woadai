@@ -12,6 +12,7 @@ import RepoDetail from "@/pages/RepoDetail";
 import Favorites from "@/pages/Favorites";
 import PublicCollection from "@/pages/PublicCollection";
 import Settings from "@/pages/Settings";
+import BeninDevs from "@/pages/BeninDevs";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/collection/:slug" element={<PublicCollection />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/devs-benin" element={<BeninDevs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <InstallPrompt />

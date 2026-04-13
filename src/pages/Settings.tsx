@@ -1,24 +1,33 @@
 import { useState } from "react";
 import { useStore } from "@/store/useStore";
 import { GROQ_MODELS } from "@/lib/constants";
-import { Eye, EyeOff, ExternalLink, Trash2, Zap, Download } from "lucide-react";
+import { Eye, EyeOff, ExternalLink, Trash2, Zap, Download, Github } from "lucide-react";
 
 const Settings = () => {
   const {
-    groqApiKey, groqModel, totalTokensUsed,
-    setGroqApiKey, setGroqModel,
+    groqApiKey, groqModel, totalTokensUsed, githubToken,
+    setGroqApiKey, setGroqModel, setGithubToken,
     favorites, searchHistory, clearSearchHistory,
   } = useStore();
 
   const [key, setKey] = useState(groqApiKey);
+  const [ghToken, setGhToken] = useState(githubToken);
   const [showKey, setShowKey] = useState(false);
+  const [showGhToken, setShowGhToken] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [ghSaved, setGhSaved] = useState(false);
 
   const handleSaveKey = () => {
     if (key && !key.startsWith("gsk_")) return;
     setGroqApiKey(key);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveGhToken = () => {
+    setGithubToken(ghToken);
+    setGhSaved(true);
+    setTimeout(() => setGhSaved(false), 2000);
   };
 
   const handleExportAll = () => {
@@ -116,6 +125,55 @@ const Settings = () => {
                 <span className="text-sm font-semibold text-foreground">{totalTokensUsed.toLocaleString()}</span>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* GitHub Token Section */}
+        <section className="mt-10">
+          <h2 className="flex items-center gap-2 font-label text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <Github className="h-4 w-4 text-foreground" />
+            Token GitHub
+          </h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Un token personnel GitHub augmente la limite de requêtes de 60 à 5000/heure et permet de rechercher des développeurs.
+          </p>
+
+          <div className="mt-4">
+            <label className="mb-1.5 block font-label text-xs text-muted-foreground">
+              Personal Access Token (classic)
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showGhToken ? "text" : "password"}
+                  value={ghToken}
+                  onChange={(e) => setGhToken(e.target.value)}
+                  placeholder="ghp_..."
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                />
+                <button
+                  onClick={() => setShowGhToken(!showGhToken)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showGhToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <button
+                onClick={handleSaveGhToken}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-label text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                {ghSaved ? "✓" : "Enregistrer"}
+              </button>
+            </div>
+            <a
+              href="https://github.com/settings/tokens/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Créer un token sur GitHub (scopes : public_repo, read:user)
+              <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
         </section>
 
