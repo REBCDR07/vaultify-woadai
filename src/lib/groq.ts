@@ -17,7 +17,7 @@ export async function callGroq(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, messages, temperature, max_tokens: 2048 }),
+    body: JSON.stringify({ model, messages, temperature, max_tokens: 4096 }),
   });
 
   if (!res.ok) {
