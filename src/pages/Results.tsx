@@ -18,7 +18,7 @@ interface EnrichedRepo {
 const Results = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
-  const { groqApiKey, groqModel, addTokens, addSearchLog, favorites } = useStore();
+  const { groqApiKey, groqModel, githubToken, addTokens, addSearchLog, favorites } = useStore();
 
   const [results, setResults] = useState<EnrichedRepo[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -58,7 +58,7 @@ const Results = () => {
       const repos = await searchReposParallel(queries, {
         language: filterLang || undefined,
         minStars: filterMinStars || undefined,
-      });
+      }, githubToken || undefined);
 
       // Step 3: Score with AI if key exists
       if (groqApiKey && repos.length > 0) {
@@ -109,7 +109,7 @@ const Results = () => {
     } finally {
       setLoading(false);
     }
-  }, [groqApiKey, groqModel, filterLang, filterMinStars, addTokens, addSearchLog]);
+  }, [groqApiKey, groqModel, githubToken, filterLang, filterMinStars, addTokens, addSearchLog]);
 
   useEffect(() => {
     performSearch(query);

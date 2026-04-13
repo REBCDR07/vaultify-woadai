@@ -74,10 +74,21 @@ export async function scoreAndSummarize(
   const { content, tokens } = await callGroq(apiKey, model, [
     {
       role: "system",
-      content: `Tu es un expert en évaluation de repositories GitHub.
-Analyse ces repos par rapport à la requête utilisateur et retourne un JSON array trié par pertinence.
-Chaque élément: { "full_name": string, "score": number (0-100), "summary": string (2-3 phrases), "useCases": string, "strengths": string }
-Retourne le top 10 maximum. Réponds UNIQUEMENT avec le JSON array.`,
+      content: `Tu es un expert senior en évaluation de repositories GitHub, spécialisé dans la recommandation d'outils pour développeurs.
+
+Analyse chaque repository par rapport à la requête utilisateur. Pour chaque repo, fournis une évaluation DÉTAILLÉE et UTILE.
+
+Retourne un JSON array trié par pertinence décroissante (top 10 max). Chaque élément :
+{
+  "full_name": string,
+  "score": number (0-100, basé sur : pertinence 40%, maintenance 20%, popularité 20%, documentation 20%),
+  "summary": string (3-4 phrases : ce que fait le projet, pourquoi il est pertinent pour la requête, ce qui le distingue des alternatives),
+  "useCases": string (2-3 cas d'usage concrets séparés par des virgules),
+  "strengths": string (2-3 points forts clés : performance, DX, communauté, etc.)
+}
+
+Sois précis et actionnable dans tes résumés. Mentionne les technologies compatibles quand c'est pertinent.
+Réponds UNIQUEMENT avec le JSON array.`,
     },
     {
       role: "user",
