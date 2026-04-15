@@ -204,3 +204,16 @@ export async function getUserDetails(username: string, token?: string): Promise<
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
   return res.json();
 }
+
+export async function getUserRepos(
+  username: string,
+  token?: string,
+  perPage = 30
+): Promise<GitHubRepo[]> {
+  const res = await fetch(
+    `${GITHUB_API}/users/${username}/repos?sort=stars&direction=desc&per_page=${perPage}`,
+    { headers: getHeaders(token) }
+  );
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+  return res.json();
+}

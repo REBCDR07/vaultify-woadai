@@ -126,6 +126,42 @@ Réponds UNIQUEMENT avec un JSON array de 4 strings courts.`,
   }
 }
 
+export async function analyzeDevProfile(
+  apiKey: string,
+  model: string,
+  user: { login: string; name: string | null; bio: string | null; location: string | null; followers: number; following: number; public_repos: number; company: string | null },
+  repos: Array<{ name: string; description: string; stargazers_count: number; forks_count: number; language: string; topics: string[] }>
+): Promise<{ profile: { summary: string; expertise: string; collaborationFit: string; projectSuggestions: string; ranking: string }; tokens: number }> {
+  const repoSummary = repos.map((r) => ({
+    name: r.name, desc: r.description, stars: r.stargazers_count, forks: r.forks_count, lang: r.language, topics: r.topics,
+  }));
+  const { content, tokens } = await callGroq(apiKey, model, [
+    {
+      role: "system",
+      content: `Tu es un expert en analyse de profils développeurs GitHub. Analyse ce profil de fond en comble.
+Retourne un JSON:
+{
+  "summary": string (paragraphe détaillé: qui est ce dev, ses compétences principales, son niveau estimé, sa spécialisation),
+  "expertise": string (domaines d'expertise déduits des repos: langages, frameworks, types de projets),
+  "collaborationFit": string (pour quel type de projet ce dev serait idéal: startup, open-source, freelance, etc.),
+  "projectSuggestions": string (3-4 types de projets où ce dev pourrait contribuer efficacement),
+  "ranking": string (classement estimé: junior/mid/senior/expert, avec justification basée sur les repos, stars, activité)
+}
+Sois précis, actionnable et bienveillant. Réponds UNIQUEMENT avec le JSON.`,
+    },
+    {
+      role: "user",
+      content: `Profil: ${user.name || user.login}\nBio: ${user.bio || "N/A"}\nLocation: ${user.location || "N/A"}\nCompany: ${user.company || "N/A"}\nFollowers: ${user.followers}\nRepos publics: ${user.public_repos}\n\nTop repos:\n${JSON.stringify(repoSummary)}`,
+    },
+  ], 0.4);
+
+  try {
+    return { profile: JSON.parse(content), tokens };
+  } catch {
+    return { profile: { summary: "", expertise: "", collaborationFit: "", projectSuggestions: "", ranking: "" }, tokens };
+  }
+}
+
 export async function generateRepoDetail(
   apiKey: string,
   model: string,
