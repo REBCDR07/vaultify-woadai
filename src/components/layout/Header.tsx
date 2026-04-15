@@ -9,18 +9,18 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container px-4 flex h-14 items-center justify-between">
         <Link to="/home" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="font-display text-sm font-bold text-primary-foreground">V</span>
           </div>
-          <span className="font-display text-lg font-semibold text-foreground">Vaultify</span>
+          <span className="font-display text-lg font-semibold text-foreground hidden sm:inline">Vaultify</span>
         </Link>
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-0.5 sm:gap-1">
           <NavItem to="/home" icon={<Home className="h-4 w-4" />} label="Home" />
           <NavItem to="/devs-benin" icon={<Users className="h-4 w-4" />} label="Devs 🇧🇯" />
           <NavItem to="/favorites" icon={<BookmarkIcon className="h-4 w-4" />} label="Favoris" />
-          <NavItem to="/settings" icon={<Settings className="h-4 w-4" />} label="Paramètres" />
+          <NavItem to="/settings" icon={<Settings className="h-4 w-4" />} label="Config" />
         </nav>
       </div>
     </header>
@@ -33,7 +33,7 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
   return (
     <Link
       to={to}
-      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-label transition-colors duration-150 ${
+      className={`flex items-center gap-1 sm:gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-label transition-colors duration-150 ${
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:text-foreground hover:bg-secondary"

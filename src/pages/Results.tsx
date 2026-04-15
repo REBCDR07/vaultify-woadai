@@ -28,7 +28,6 @@ const Results = () => {
   const [tokensUsed, setTokensUsed] = useState(0);
   const [saveModal, setSaveModal] = useState<EnrichedRepo | null>(null);
 
-  // Filters
   const [filterLang, setFilterLang] = useState("");
   const [filterMinStars, setFilterMinStars] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
@@ -45,7 +44,6 @@ const Results = () => {
     try {
       let queries = [q];
 
-      // Step 1: Reformulate with AI if key exists
       if (groqApiKey) {
         try {
           const { queries: reformulated, tokens } = await reformulateQuery(groqApiKey, groqModel, q);
@@ -56,36 +54,27 @@ const Results = () => {
         }
       }
 
-      // Step 2: Search GitHub in parallel
       const repos = await searchReposParallel(queries, {
         language: filterLang || undefined,
         minStars: filterMinStars || undefined,
       }, githubToken || undefined);
 
-      // Step 3: Score with AI if key exists
       if (groqApiKey && repos.length > 0) {
         try {
           const { results: scored, tokens } = await scoreAndSummarize(
-            groqApiKey,
-            groqModel,
-            q,
-            repos.slice(0, 30)
+            groqApiKey, groqModel, q, repos.slice(0, 30)
           );
           totalTokens += tokens;
 
           const enriched: EnrichedRepo[] = scored.map((s) => {
             const repo = repos.find((r) => r.full_name === s.full_name);
-            return repo
-              ? { repo, score: s.score, summary: s.summary, useCases: s.useCases, strengths: s.strengths }
-              : null;
+            return repo ? { repo, score: s.score, summary: s.summary, useCases: s.useCases, strengths: s.strengths } : null;
           }).filter(Boolean) as EnrichedRepo[];
 
-          // Add repos that weren't scored
           const scoredNames = new Set(scored.map((s) => s.full_name));
           const unscored = repos.filter((r) => !scoredNames.has(r.full_name)).map((r) => ({ repo: r }));
           setResults([...enriched, ...unscored]);
 
-          // Step 4: Suggestions
           try {
             const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(groqApiKey, groqModel, q);
             setSuggestions(sug);
@@ -101,11 +90,7 @@ const Results = () => {
 
       setTokensUsed(totalTokens);
       addTokens(totalTokens);
-      addSearchLog({
-        id: crypto.randomUUID(),
-        query: q,
-        searched_at: new Date().toISOString(),
-      });
+      addSearchLog({ id: crypto.randomUUID(), query: q, searched_at: new Date().toISOString() });
     } catch (e) {
       console.error("Search error:", e);
     } finally {
@@ -120,12 +105,12 @@ const Results = () => {
   const isSaved = (name: string) => favorites.some((f) => f.full_name === name);
 
   return (
-    <div className="container py-6">
+    <div className="container px-4 py-6">
       <div className="mx-auto max-w-3xl">
         <SearchBar initialQuery={query} />
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <h2 className="font-label text-sm text-muted-foreground">
             {loading ? "Recherche en cours..." : `${results.length} résultats`}
@@ -147,13 +132,13 @@ const Results = () => {
       </div>
 
       {showFilters && (
-        <div className="mt-3 flex flex-wrap gap-3 rounded-xl border border-border bg-card p-4 animate-slide-up">
+        <div className="mt-3 flex flex-col sm:flex-row flex-wrap gap-3 rounded-xl border border-border bg-card p-4 animate-slide-up">
           <div>
             <label className="mb-1 block font-label text-[10px] text-muted-foreground uppercase">Langage</label>
             <select
               value={filterLang}
               onChange={(e) => setFilterLang(e.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
+              className="w-full sm:w-auto rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
             >
               <option value="">Tous</option>
               {["JavaScript","TypeScript","Python","Rust","Go","Java","C++","Ruby","PHP","Swift","Kotlin","Dart"].map(l => (
@@ -167,7 +152,7 @@ const Results = () => {
               type="number"
               value={filterMinStars}
               onChange={(e) => setFilterMinStars(Number(e.target.value))}
-              className="w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
+              className="w-full sm:w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
             />
           </div>
           <div className="flex items-end">
@@ -181,8 +166,7 @@ const Results = () => {
         </div>
       )}
 
-      {/* Results grid */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : results.map(({ repo, score, summary, useCases, strengths }) => (
@@ -200,20 +184,11 @@ const Results = () => {
                 useCases={useCases}
                 strengths={strengths}
                 isSaved={isSaved(repo.full_name)}
-                onSave={() =>
-                  setSaveModal({
-                    repo,
-                    score,
-                    summary,
-                    useCases,
-                    strengths,
-                  })
-                }
+                onSave={() => setSaveModal({ repo, score, summary, useCases, strengths })}
               />
             ))}
       </div>
 
-      {/* Suggestions */}
       {suggestions.length > 0 && (
         <div className="mt-8">
           <h3 className="mb-3 font-label text-xs text-muted-foreground uppercase tracking-wider">

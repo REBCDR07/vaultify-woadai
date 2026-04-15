@@ -20,10 +20,7 @@ const Favorites = () => {
   });
 
   const exportFavorites = (format: "json" | "markdown") => {
-    const data = selectedCollection
-      ? filtered
-      : favorites;
-
+    const data = selectedCollection ? filtered : favorites;
     if (format === "json") {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       downloadBlob(blob, "vaultify-favorites.json");
@@ -49,9 +46,9 @@ const Favorites = () => {
   };
 
   return (
-    <div className="container py-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Mes Favoris</h1>
+    <div className="container px-4 py-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Mes Favoris</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => exportFavorites("json")}
@@ -65,14 +62,13 @@ const Favorites = () => {
             className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-label text-muted-foreground hover:text-foreground transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
-            Markdown
+            MD
           </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mt-4 flex gap-3">
-        <div className="relative flex-1">
+      <div className="mt-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -84,7 +80,6 @@ const Favorites = () => {
         </div>
       </div>
 
-      {/* Collections */}
       {collections.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -124,17 +119,16 @@ const Favorites = () => {
         </div>
       )}
 
-      {/* Favorites */}
       {filtered.length === 0 ? (
         <div className="mt-12 text-center">
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {favorites.length === 0
               ? "Aucun favori sauvegardé. Lancez une recherche et sauvegardez des repos !"
               : "Aucun favori ne correspond à vos filtres."}
           </p>
         </div>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2">
           {filtered.map((f) => (
             <div key={f.id} className="relative">
               <RepoCard

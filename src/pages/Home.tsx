@@ -20,24 +20,23 @@ const Home = () => {
   const recentSearches = searchHistory.slice(0, 5);
 
   return (
-    <div className="container py-12">
+    <div className="container px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-2xl text-center">
-        <h1 className="font-display text-3xl font-bold text-foreground">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
           Que cherchez-vous ?
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-xs sm:text-sm text-muted-foreground">
           {groqApiKey
             ? "L'IA va analyser et scorer les meilleurs repos pour vous"
             : "Mode basique — ajoutez votre clé Groq dans les paramètres pour activer l'IA"}
         </p>
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <SearchBar large />
         </div>
       </div>
 
-      {/* Recent searches */}
       {recentSearches.length > 0 && (
-        <div className="mx-auto mt-8 max-w-2xl">
+        <div className="mx-auto mt-6 sm:mt-8 max-w-2xl">
           <h2 className="mb-3 flex items-center gap-2 font-label text-xs font-medium text-muted-foreground uppercase tracking-wider">
             <Clock className="h-3.5 w-3.5" />
             Recherches récentes
@@ -57,8 +56,7 @@ const Home = () => {
         </div>
       )}
 
-      {/* Categories */}
-      <div className="mx-auto mt-10 max-w-3xl">
+      <div className="mx-auto mt-8 sm:mt-10 max-w-3xl">
         <h2 className="mb-4 font-label text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Explorer par catégorie
         </h2>
