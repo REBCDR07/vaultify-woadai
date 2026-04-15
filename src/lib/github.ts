@@ -33,6 +33,7 @@ export interface GitHubUser {
   blog: string | null;
   twitter_username: string | null;
   company: string | null;
+  created_at: string;
 }
 
 interface SearchFilters {

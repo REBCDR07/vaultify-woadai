@@ -13,6 +13,7 @@ import Favorites from "@/pages/Favorites";
 import PublicCollection from "@/pages/PublicCollection";
 import Settings from "@/pages/Settings";
 import BeninDevs from "@/pages/BeninDevs";
+import DevProfile from "@/pages/DevProfile";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/collection/:slug" element={<PublicCollection />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/devs-benin" element={<BeninDevs />} />
+          <Route path="/dev/:username" element={<DevProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <InstallPrompt />
