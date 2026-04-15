@@ -31,11 +31,7 @@ const Settings = () => {
   };
 
   const handleExportAll = () => {
-    const data = {
-      favorites,
-      searchHistory,
-      exportedAt: new Date().toISOString(),
-    };
+    const data = { favorites, searchHistory, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -52,12 +48,12 @@ const Settings = () => {
   };
 
   return (
-    <div className="container py-6">
+    <div className="container px-4 py-6">
       <div className="mx-auto max-w-xl">
-        <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Paramètres</h1>
 
         {/* IA Section */}
-        <section className="mt-8">
+        <section className="mt-6 sm:mt-8">
           <h2 className="flex items-center gap-2 font-label text-sm font-medium text-muted-foreground uppercase tracking-wider">
             <Zap className="h-4 w-4 text-primary" />
             Intelligence Artificielle
@@ -68,7 +64,7 @@ const Settings = () => {
               <label className="mb-1.5 block font-label text-xs text-muted-foreground">
                 Clé API Groq
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <input
                     type={showKey ? "text" : "password"}
@@ -88,7 +84,7 @@ const Settings = () => {
                   onClick={handleSaveKey}
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-label text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  {saved ? "✓" : "Enregistrer"}
+                  {saved ? "✓" : "Sauver"}
                 </button>
               </div>
               <a
@@ -121,28 +117,28 @@ const Settings = () => {
 
             <div className="rounded-lg border border-border bg-card p-3">
               <div className="flex items-center justify-between">
-                <span className="font-label text-xs text-muted-foreground">Tokens consommés ce mois</span>
+                <span className="font-label text-xs text-muted-foreground">Tokens consommés</span>
                 <span className="text-sm font-semibold text-foreground">{totalTokensUsed.toLocaleString()}</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* GitHub Token Section */}
-        <section className="mt-10">
+        {/* GitHub Token */}
+        <section className="mt-8 sm:mt-10">
           <h2 className="flex items-center gap-2 font-label text-sm font-medium text-muted-foreground uppercase tracking-wider">
             <Github className="h-4 w-4 text-foreground" />
             Token GitHub
           </h2>
           <p className="mt-2 text-xs text-muted-foreground">
-            Un token personnel GitHub augmente la limite de requêtes de 60 à 5000/heure et permet de rechercher des développeurs.
+            Augmente la limite de 60 à 5000 requêtes/heure.
           </p>
 
           <div className="mt-4">
             <label className="mb-1.5 block font-label text-xs text-muted-foreground">
-              Personal Access Token (classic)
+              Personal Access Token
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <input
                   type={showGhToken ? "text" : "password"}
@@ -162,7 +158,7 @@ const Settings = () => {
                 onClick={handleSaveGhToken}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-label text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                {ghSaved ? "✓" : "Enregistrer"}
+                {ghSaved ? "✓" : "Sauver"}
               </button>
             </div>
             <a
@@ -171,14 +167,14 @@ const Settings = () => {
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              Créer un token sur GitHub (scopes : public_repo, read:user)
+              Créer un token GitHub
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
         </section>
 
-        {/* Data Section */}
-        <section className="mt-10">
+        {/* Data */}
+        <section className="mt-8 sm:mt-10">
           <h2 className="font-label text-sm font-medium text-muted-foreground uppercase tracking-wider">
             Données
           </h2>
@@ -189,17 +185,15 @@ const Settings = () => {
               className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
             >
               <Download className="h-4 w-4 text-primary" />
-              Exporter toutes mes données (JSON)
+              Exporter toutes mes données
             </button>
-
             <button
               onClick={clearSearchHistory}
               className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
             >
               <Trash2 className="h-4 w-4 text-muted-foreground" />
-              Effacer l'historique de recherche
+              Effacer l'historique
             </button>
-
             <button
               onClick={handleDeleteAll}
               className="flex w-full items-center gap-2 rounded-lg border border-destructive/50 bg-card px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors"

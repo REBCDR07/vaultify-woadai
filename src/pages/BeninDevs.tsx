@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import { deepSearchBeninDevelopers, getUserDetails, type GitHubUser } from "@/lib/github";
 import { Search, MapPin, Users, ExternalLink, Building, Globe, Loader2, Filter, ChevronDown, X } from "lucide-react";
@@ -16,6 +17,7 @@ interface Filters {
 
 const BeninDevs = () => {
   const { githubToken } = useStore();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<GitHubUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,6 @@ const BeninDevs = () => {
       );
       setTotalCount(count);
 
-      // Enrich all users with full details
       if (githubToken) {
         const enriched = new Map<string, GitHubUser>();
         for (let i = 0; i < found.length; i += 5) {
@@ -52,7 +53,6 @@ const BeninDevs = () => {
         }
         setEnrichedUsers(enriched);
 
-        // Client-side re-filter enriched data for followers/repos
         const filtered = found.filter((u) => {
           const d = enriched.get(u.login);
           if (!d) return true;
@@ -60,7 +60,6 @@ const BeninDevs = () => {
           if (f.minRepos && d.public_repos < f.minRepos) return false;
           return true;
         });
-        // Sort by followers desc
         filtered.sort((a, b) => {
           const fa = enriched.get(a.login)?.followers || 0;
           const fb = enriched.get(b.login)?.followers || 0;
@@ -105,16 +104,16 @@ const BeninDevs = () => {
   const getUser = (login: string): GitHubUser | undefined => enrichedUsers.get(login);
 
   return (
-    <div className="container py-6">
+    <div className="container px-4 py-6">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="font-heading text-3xl text-foreground flex items-center justify-center gap-3">
-            <span className="text-3xl">🇧🇯</span>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="font-heading text-2xl sm:text-3xl text-foreground flex items-center justify-center gap-3">
+            <span className="text-2xl sm:text-3xl">🇧🇯</span>
             Devs Béninois
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground font-body">
-            Découvrez les talents tech du Bénin sur GitHub — recherche en profondeur
+          <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-body">
+            Découvrez les talents tech du Bénin — cliquez sur un profil pour l'analyser en détail
           </p>
           {!githubToken && (
             <p className="mt-2 text-xs text-warning font-body">
@@ -131,20 +130,20 @@ const BeninDevs = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par nom, langage, mot-clé..."
+              placeholder="Rechercher par nom, langage..."
               className="w-full rounded-xl border border-border bg-card pl-10 pr-4 py-3 text-sm font-body text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </form>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 rounded-xl border px-4 py-3 text-sm font-label transition-colors ${
+            className={`flex items-center gap-1.5 rounded-xl border px-3 sm:px-4 py-3 text-sm font-label transition-colors ${
               hasActiveFilters
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-card text-muted-foreground hover:text-foreground"
             }`}
           >
             <Filter className="h-4 w-4" />
-            Filtres
+            <span className="hidden sm:inline">Filtres</span>
             {hasActiveFilters && (
               <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {[activeFilters.language, activeFilters.minFollowers, activeFilters.minRepos].filter(Boolean).length}
@@ -157,8 +156,7 @@ const BeninDevs = () => {
         {/* Filter panel */}
         {showFilters && (
           <div className="mb-6 rounded-xl border border-border bg-card p-4 animate-slide-up">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {/* Language */}
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div>
                 <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
                   Langage
@@ -174,8 +172,6 @@ const BeninDevs = () => {
                   ))}
                 </select>
               </div>
-
-              {/* Min Followers */}
               <div>
                 <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
                   Followers min
@@ -189,8 +185,6 @@ const BeninDevs = () => {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-body text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
               </div>
-
-              {/* Min Repos */}
               <div>
                 <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
                   Repos min
@@ -268,43 +262,43 @@ const BeninDevs = () => {
             <p className="text-xs text-muted-foreground font-body">Recherche parallèle sur 14 villes béninoises...</p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {users.map((user) => {
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+            {users.map((user, index) => {
               const details = getUser(user.login);
               return (
-                <div
+                <button
                   key={user.id}
-                  className="group rounded-xl border border-border bg-card p-4 card-hover animate-slide-up"
+                  onClick={() => navigate(`/dev/${user.login}`)}
+                  className="group rounded-xl border border-border bg-card p-4 card-hover animate-slide-up text-left"
                 >
+                  {/* Rank badge */}
                   <div className="flex items-start gap-3">
-                    <img
-                      src={user.avatar_url}
-                      alt={user.login}
-                      className="h-12 w-12 rounded-full border border-border"
-                    />
+                    <div className="relative">
+                      <img
+                        src={user.avatar_url}
+                        alt={user.login}
+                        className="h-12 w-12 rounded-full border border-border"
+                      />
+                      <span className="absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                        {index + 1}
+                      </span>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-heading text-foreground group-hover:text-primary transition-colors">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-heading text-foreground group-hover:text-primary transition-colors truncate">
                             {details?.name || user.login}
                           </h3>
                           <p className="text-xs text-muted-foreground font-body">@{user.login}</p>
                         </div>
-                        <a
-                          href={user.html_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
+                        <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
 
                       {details?.bio && (
                         <p className="mt-1.5 text-xs text-muted-foreground font-body line-clamp-2">{details.bio}</p>
                       )}
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-body">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-body">
                         {details?.location && (
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
@@ -320,19 +314,14 @@ const BeninDevs = () => {
                         {details && (
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            {details.followers} followers
+                            {details.followers}
                           </span>
                         )}
                         {details?.blog && (
-                          <a
-                            href={details.blog.startsWith("http") ? details.blog : `https://${details.blog}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-primary hover:underline"
-                          >
+                          <span className="flex items-center gap-1 text-primary">
                             <Globe className="h-3 w-3" />
                             Site
-                          </a>
+                          </span>
                         )}
                       </div>
 
@@ -348,7 +337,7 @@ const BeninDevs = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

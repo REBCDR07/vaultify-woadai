@@ -33,6 +33,7 @@ export interface GitHubUser {
   blog: string | null;
   twitter_username: string | null;
   company: string | null;
+  created_at: string;
 }
 
 interface SearchFilters {
@@ -201,6 +202,19 @@ export async function getUserDetails(username: string, token?: string): Promise<
   const res = await fetch(`${GITHUB_API}/users/${username}`, {
     headers: getHeaders(token),
   });
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+  return res.json();
+}
+
+export async function getUserRepos(
+  username: string,
+  token?: string,
+  perPage = 30
+): Promise<GitHubRepo[]> {
+  const res = await fetch(
+    `${GITHUB_API}/users/${username}/repos?sort=stars&direction=desc&per_page=${perPage}`,
+    { headers: getHeaders(token) }
+  );
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
   return res.json();
 }
