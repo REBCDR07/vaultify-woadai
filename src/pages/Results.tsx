@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import SearchBar from "@/components/search/SearchBar";
 import RepoCard from "@/components/results/RepoCard";
@@ -17,10 +17,12 @@ interface EnrichedRepo {
   strengths?: string;
 }
 
+const CACHE_TTL = 30 * 60 * 1000; // 30 min
+
 const Results = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
-  const { groqApiKey, groqModel, githubToken, addTokens, addSearchLog, favorites } = useStore();
+  const { groqApiKey, groqModel, githubToken, addTokens, addSearchLog, favorites, cachedSearch, setCachedSearch } = useStore();
 
   const [results, setResults] = useState<EnrichedRepo[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -31,6 +33,7 @@ const Results = () => {
   const [filterLang, setFilterLang] = useState("");
   const [filterMinStars, setFilterMinStars] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const hasSearchedRef = useRef(false);
 
   const performSearch = useCallback(async (q: string) => {
     if (!q) return;
@@ -59,6 +62,8 @@ const Results = () => {
         minStars: filterMinStars || undefined,
       }, githubToken || undefined);
 
+      let enrichedResults: EnrichedRepo[];
+
       if (groqApiKey && repos.length > 0) {
         try {
           const { results: scored, tokens } = await scoreAndSummarize(
@@ -73,7 +78,7 @@ const Results = () => {
 
           const scoredNames = new Set(scored.map((s) => s.full_name));
           const unscored = repos.filter((r) => !scoredNames.has(r.full_name)).map((r) => ({ repo: r }));
-          setResults([...enriched, ...unscored]);
+          enrichedResults = [...enriched, ...unscored];
 
           try {
             const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(groqApiKey, groqModel, q);
@@ -82,25 +87,58 @@ const Results = () => {
           } catch {}
         } catch (e) {
           console.error("Scoring error:", e);
-          setResults(repos.map((r) => ({ repo: r })));
+          enrichedResults = repos.map((r) => ({ repo: r }));
         }
       } else {
-        setResults(repos.map((r) => ({ repo: r })));
+        enrichedResults = repos.map((r) => ({ repo: r }));
       }
 
+      setResults(enrichedResults);
       setTokensUsed(totalTokens);
       addTokens(totalTokens);
       addSearchLog({ id: crypto.randomUUID(), query: q, searched_at: new Date().toISOString() });
+
+      // Cache results
+      setCachedSearch({
+        query: q,
+        results: enrichedResults,
+        suggestions: [],
+        tokensUsed: totalTokens,
+        timestamp: Date.now(),
+      });
     } catch (e) {
       console.error("Search error:", e);
     } finally {
       setLoading(false);
     }
-  }, [groqApiKey, groqModel, githubToken, filterLang, filterMinStars, addTokens, addSearchLog]);
+  }, [groqApiKey, groqModel, githubToken, filterLang, filterMinStars, addTokens, addSearchLog, setCachedSearch]);
 
   useEffect(() => {
-    performSearch(query);
+    if (!query) return;
+
+    // Check cache first
+    if (
+      cachedSearch &&
+      cachedSearch.query === query &&
+      Date.now() - cachedSearch.timestamp < CACHE_TTL
+    ) {
+      setResults(cachedSearch.results);
+      setSuggestions(cachedSearch.suggestions);
+      setTokensUsed(cachedSearch.tokensUsed);
+      hasSearchedRef.current = true;
+      return;
+    }
+
+    if (!hasSearchedRef.current) {
+      hasSearchedRef.current = true;
+      performSearch(query);
+    }
   }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset ref when query changes
+  useEffect(() => {
+    hasSearchedRef.current = false;
+  }, [query]);
 
   const isSaved = (name: string) => favorites.some((f) => f.full_name === name);
 
@@ -116,7 +154,7 @@ const Results = () => {
             {loading ? "Recherche en cours..." : `${results.length} résultats`}
           </h2>
           {tokensUsed > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-label text-primary">
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-label text-foreground">
               <Zap className="h-3 w-3" />
               {tokensUsed} tokens
             </span>
@@ -138,7 +176,7 @@ const Results = () => {
             <select
               value={filterLang}
               onChange={(e) => setFilterLang(e.target.value)}
-              className="w-full sm:w-auto rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
+              className="w-full sm:w-auto rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
             >
               <option value="">Tous</option>
               {["JavaScript","TypeScript","Python","Rust","Go","Java","C++","Ruby","PHP","Swift","Kotlin","Dart"].map(l => (
@@ -152,12 +190,12 @@ const Results = () => {
               type="number"
               value={filterMinStars}
               onChange={(e) => setFilterMinStars(Number(e.target.value))}
-              className="w-full sm:w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary"
+              className="w-full sm:w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
             />
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => performSearch(query)}
+              onClick={() => { hasSearchedRef.current = false; performSearch(query); }}
               className="rounded-lg bg-primary px-4 py-1.5 text-xs font-label text-primary-foreground hover:bg-primary/90"
             >
               Appliquer
@@ -199,7 +237,7 @@ const Results = () => {
               <a
                 key={i}
                 href={`/results?q=${encodeURIComponent(s)}`}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-ring/50 transition-colors"
               >
                 {s}
               </a>

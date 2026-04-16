@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Rajdhani:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800;900&family=Oswald:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,50 +6,89 @@
 
 @layer base {
   :root {
-    --background: 215 28% 5%;
-    --foreground: 210 29% 92%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
 
-    --card: 215 22% 11%;
-    --card-foreground: 210 29% 92%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 4%;
 
-    --popover: 215 22% 11%;
-    --popover-foreground: 210 29% 92%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 4%;
 
-    --primary: 212 100% 67%;
-    --primary-foreground: 215 28% 5%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 215 14% 20%;
-    --secondary-foreground: 210 29% 92%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 215 14% 16%;
-    --muted-foreground: 215 10% 57%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 130 52% 49%;
-    --accent-foreground: 215 28% 5%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 14 88% 68%;
-    --destructive-foreground: 215 28% 5%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --warning: 43 74% 58%;
-    --warning-foreground: 215 28% 5%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
 
-    --border: 215 14% 22%;
-    --input: 215 14% 22%;
-    --ring: 212 100% 67%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 9%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 215 22% 11%;
-    --sidebar-foreground: 210 29% 92%;
-    --sidebar-primary: 212 100% 67%;
-    --sidebar-primary-foreground: 215 28% 5%;
-    --sidebar-accent: 215 14% 16%;
-    --sidebar-accent-foreground: 210 29% 92%;
-    --sidebar-border: 215 14% 22%;
-    --sidebar-ring: 212 100% 67%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 4%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 9%;
+  }
 
-    --glow-primary: 0 0 20px hsl(212 100% 67% / 0.15);
-    --glow-accent: 0 0 20px hsl(130 52% 49% / 0.15);
+  .dark {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 4%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 4%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 83%;
+
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 0 0% 83%;
   }
 }
 
@@ -69,27 +108,26 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Unbounded', sans-serif;
+    font-family: 'Black Ops One', cursive;
   }
 
   .font-label {
-    font-family: 'Oswald', sans-serif;
-  }
-
-  .glow-border {
-    box-shadow: var(--glow-primary);
-  }
-
-  .glow-border-accent {
-    box-shadow: var(--glow-accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
   }
 
   .card-hover {
-    @apply transition-all duration-150 ease-out;
+    @apply transition-all duration-200 ease-out;
   }
 
   .card-hover:hover {
-    border-color: hsl(212 100% 67% / 0.4);
-    box-shadow: 0 0 24px hsl(212 100% 67% / 0.1);
+    border-color: hsl(0 0% 50% / 0.4);
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.08);
+    transform: translateY(-1px);
+  }
+
+  .dark .card-hover:hover {
+    border-color: hsl(0 0% 40% / 0.5);
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.3);
   }
 }

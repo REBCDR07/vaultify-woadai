@@ -10,11 +10,11 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container px-4 flex h-14 items-center justify-between">
-        <Link to="/home" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="font-display text-sm font-bold text-primary-foreground">V</span>
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground">
+            <span className="font-display text-xs text-background">V</span>
           </div>
-          <span className="font-display text-lg font-semibold text-foreground hidden sm:inline">Vaultify</span>
+          <span className="font-display text-base text-foreground hidden sm:inline">Vaultify</span>
         </Link>
         <nav className="flex items-center gap-0.5 sm:gap-1">
           <NavItem to="/home" icon={<Home className="h-4 w-4" />} label="Home" />
@@ -35,7 +35,7 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
       to={to}
       className={`flex items-center gap-1 sm:gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-label transition-colors duration-150 ${
         active
-          ? "bg-primary/10 text-primary"
+          ? "bg-secondary text-foreground"
           : "text-muted-foreground hover:text-foreground hover:bg-secondary"
       }`}
     >
