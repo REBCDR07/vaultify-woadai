@@ -119,6 +119,29 @@ export async function getRepoReadme(owner: string, repo: string, token?: string)
   }
 }
 
+// Deep search for Benin devs: paginated + multi-location
+const BENIN_LOCATIONS = [
+  "Benin", "Bénin", "Cotonou", "Porto-Novo", "Parakou",
+  "Abomey-Calavi", "Abomey", "Bohicon", "Natitingou",
+  "Djougou", "Lokossa", "Ouidah", "Kandi", "Savalou",
+  "Comè", "Dassa-Zoumè", "Malanville", "Pobè", "Sakété",
+  "Sèmè-Podji", "Allada", "Aplahoué", "Bembèrèkè", "Tchaourou"
+];
+
+async function fetchUsersPage(
+  q: string,
+  page: number,
+  perPage: number,
+  token?: string
+): Promise<{ items: GitHubUser[]; total_count: number }> {
+  const res = await fetch(
+    `${GITHUB_API}/search/users?q=${encodeURIComponent(q)}&sort=followers&order=desc&per_page=${perPage}&page=${page}`,
+    { headers: getHeaders(token) }
+  );
+  if (!res.ok) return { items: [], total_count: 0 };
+  return res.json();
+}
+
 export async function searchBeninDevelopers(
   query: string = "",
   page: number = 1,
@@ -126,12 +149,7 @@ export async function searchBeninDevelopers(
   token?: string,
   filters?: { language?: string; minFollowers?: number; minRepos?: number }
 ): Promise<{ users: GitHubUser[]; totalCount: number }> {
-  // Broad location coverage for Benin
-  const locations = [
-    "Benin", "Bénin", "Cotonou", "Porto-Novo", "Parakou",
-    "Abomey-Calavi", "Abomey", "Bohicon", "Natitingou",
-    "Djougou", "Lokossa", "Ouidah", "Kandi", "Savalou"
-  ];
+  const locations = BENIN_LOCATIONS.slice(0, 14);
   const locationQuery = locations.map(l => `location:"${l}"`).join(" ");
 
   let qualifiers = "";
@@ -139,28 +157,24 @@ export async function searchBeninDevelopers(
   if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
   if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
 
-  const q = encodeURIComponent(
-    query ? `${query} ${locationQuery}${qualifiers}` : `${locationQuery}${qualifiers}`
-  );
-  const res = await fetch(
-    `${GITHUB_API}/search/users?q=${q}&sort=followers&order=desc&per_page=${perPage}&page=${page}`,
-    { headers: getHeaders(token) }
-  );
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  const data = await res.json();
+  const q = query ? `${query} ${locationQuery}${qualifiers}` : `${locationQuery}${qualifiers}`;
+  const data = await fetchUsersPage(q, page, perPage, token);
   return { users: data.items || [], totalCount: data.total_count || 0 };
 }
 
-// Deep search: run multiple parallel queries to catch more devs
 export async function deepSearchBeninDevelopers(
   query: string = "",
   token?: string,
   filters?: { language?: string; minFollowers?: number; minRepos?: number }
 ): Promise<{ users: GitHubUser[]; totalCount: number }> {
+  // Split locations into groups for parallel queries
   const locationGroups = [
     ['Benin', 'Bénin', 'Cotonou'],
     ['Porto-Novo', 'Abomey-Calavi', 'Parakou'],
-    ['Bohicon', 'Natitingou', 'Djougou', 'Ouidah', 'Lokossa'],
+    ['Bohicon', 'Natitingou', 'Djougou', 'Ouidah'],
+    ['Lokossa', 'Kandi', 'Savalou', 'Comè'],
+    ['Dassa-Zoumè', 'Malanville', 'Pobè', 'Sakété'],
+    ['Sèmè-Podji', 'Allada', 'Aplahoué', 'Bembèrèkè', 'Tchaourou'],
   ];
 
   let qualifiers = "";
@@ -168,25 +182,26 @@ export async function deepSearchBeninDevelopers(
   if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
   if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
 
-  const promises = locationGroups.map(async (group) => {
-    const locQ = group.map(l => `location:"${l}"`).join(" ");
-    const q = encodeURIComponent(
-      query ? `${query} ${locQ}${qualifiers}` : `${locQ}${qualifiers}`
-    );
-    const res = await fetch(
-      `${GITHUB_API}/search/users?q=${q}&sort=followers&order=desc&per_page=50`,
-      { headers: getHeaders(token) }
-    );
-    if (!res.ok) return { items: [], total_count: 0 };
-    return res.json();
-  });
+  // For each group, fetch multiple pages
+  const maxPages = token ? 3 : 1;
 
-  const results = await Promise.all(promises);
+  const allPromises: Promise<{ items: GitHubUser[]; total_count: number }>[] = [];
+
+  for (const group of locationGroups) {
+    const locQ = group.map(l => `location:"${l}"`).join(" ");
+    const q = query ? `${query} ${locQ}${qualifiers}` : `${locQ}${qualifiers}`;
+    for (let page = 1; page <= maxPages; page++) {
+      allPromises.push(fetchUsersPage(q, page, 100, token));
+    }
+  }
+
+  const results = await Promise.all(allPromises);
   const seen = new Set<number>();
   const merged: GitHubUser[] = [];
-  let total = 0;
+  let maxTotal = 0;
+
   for (const data of results) {
-    total = Math.max(total, data.total_count || 0);
+    maxTotal = Math.max(maxTotal, data.total_count || 0);
     for (const user of (data.items || [])) {
       if (!seen.has(user.id)) {
         seen.add(user.id);
@@ -194,7 +209,7 @@ export async function deepSearchBeninDevelopers(
       }
     }
   }
-  // Sort by followers descending (from enriched data later, but id as proxy)
+
   return { users: merged, totalCount: merged.length };
 }
 

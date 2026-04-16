@@ -31,6 +31,14 @@ export interface SearchLogEntry {
   searched_at: string;
 }
 
+export interface CachedSearchResult {
+  query: string;
+  results: any[];
+  suggestions: string[];
+  tokensUsed: number;
+  timestamp: number;
+}
+
 interface VaultifyState {
   // Groq config
   groqApiKey: string;
@@ -47,6 +55,10 @@ interface VaultifyState {
   // Onboarding
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
+
+  // Search cache
+  cachedSearch: CachedSearchResult | null;
+  setCachedSearch: (cache: CachedSearchResult | null) => void;
 
   // Favorites
   favorites: SavedRepo[];
@@ -76,12 +88,14 @@ export const useStore = create<VaultifyState>()(
       totalTokensUsed: 0,
       githubToken: "",
       onboardingDone: false,
+      cachedSearch: null,
 
       setGroqApiKey: (key) => set({ groqApiKey: key }),
       setGroqModel: (model) => set({ groqModel: model }),
       addTokens: (count) => set((s) => ({ totalTokensUsed: s.totalTokensUsed + count })),
       setGithubToken: (token) => set({ githubToken: token }),
       setOnboardingDone: (done) => set({ onboardingDone: done }),
+      setCachedSearch: (cache) => set({ cachedSearch: cache }),
 
       favorites: [],
       addFavorite: (repo) =>
