@@ -1,3 +1,12 @@
+const parseEnvBoolean = (value, fallback = true) => {
+  if (typeof value !== "string") return fallback;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return fallback;
+
+  return !["0", "false", "no", "off"].includes(normalized);
+};
+
 const afriChatConfig = {
   site: {
     name: "Vaultify",
@@ -18,7 +27,7 @@ const afriChatConfig = {
     tone: "friendly",
     voice: "alloy",
     persona: "Conseiller client Vaultify",
-    audioEnabled: false,
+    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, true),
     multilingual: true,
   },
   integration: {
@@ -78,4 +87,3 @@ const afriChatConfig = {
 };
 
 export default afriChatConfig;
-

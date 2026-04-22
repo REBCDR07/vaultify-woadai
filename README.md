@@ -61,6 +61,7 @@ VITE_AFRICHAT_SITE_KEY=afc_live_xxxxxxxxxxxx.yyyyyyyyyyyyyyyy
 VITE_AFRICHAT_CHAT_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-chat
 VITE_AFRICHAT_TTS_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-tts
 VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-realtime-token
+VITE_AFRICHAT_AUDIO_ENABLED=true
 ```
 
 Règles d'usage:
@@ -75,6 +76,7 @@ Règles d'usage:
 - Montage automatique dans `src/main.tsx`
 - Configuration centralisée: `src/africhat.config.js`
 - Le widget ne se monte pas tant que `VITE_AFRICHAT_SITE_KEY` est laissé au placeholder.
+- L'audio du widget est actif par défaut; définir `VITE_AFRICHAT_AUDIO_ENABLED=false` pour le désactiver.
 
 ## Démarrage
 
