@@ -121,6 +121,8 @@ const afriChatConfig = {
     name: "Assistant Vaultify",
     accentColor: "#0a0a0a",
     launcherLabel: "Discuter",
+    iconPreset: "afri-bronze",
+    iconSize: "medium",
     welcomeMessage:
       "Bonjour, je suis l'assistant Vaultify. Je peux expliquer les fonctionnalites, les IA integrees, le fonctionnement de la plateforme et presenter son createur.",
   },
@@ -133,6 +135,7 @@ const afriChatConfig = {
     multilingual: true,
   },
   integration: {
+    mode: "fullscreen",
     zIndex: 999999,
     position: "bottom-right",
   },
