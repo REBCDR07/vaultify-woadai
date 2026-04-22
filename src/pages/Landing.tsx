@@ -14,6 +14,14 @@ import {
   Gauge,
   FolderTree,
   Brain,
+  Bot,
+  GitBranch,
+  KeyRound,
+  Volume2,
+  Workflow,
+  Database,
+  ShieldAlert,
+  UserRound,
 } from "lucide-react";
 
 const FAQS = [
@@ -23,11 +31,97 @@ const FAQS = [
   },
   {
     q: "Faut-il une clé API pour utiliser Vaultify ?",
-    a: "Non. Les fonctionnalités IA sont déjà préconfigurées dans l'application. Seul un token GitHub est optionnel pour augmenter les quotas API.",
+    a: "Non. Les fonctionnalités IA sont préconfigurées. Seul un token GitHub est optionnel pour augmenter les quotas API.",
+  },
+  {
+    q: "Quels modèles IA sont intégrés ?",
+    a: "Vaultify propose GPT-5.4 Nano, GPT-5.4 Mini, GPT-5.4 et GPT-5.3 Codex. Le modèle est sélectionnable depuis les paramètres.",
+  },
+  {
+    q: "Comment Vaultify classe les repositories ?",
+    a: "L'IA reformule la demande, lance plusieurs recherches GitHub en parallèle, fusionne les résultats, puis attribue un score de pertinence avec résumé et cas d'usage.",
   },
   {
     q: "Mes favoris sont-ils stockés en ligne ?",
     a: "Non. Les favoris, l'historique et les collections sont stockés localement dans votre navigateur.",
+  },
+  {
+    q: "Qui a créé Vaultify ?",
+    a: "Vaultify est conçu et développé par Elton Ronald Bill Hounnou, développeur frontend.",
+  },
+];
+
+const IA_STACK = [
+  {
+    icon: <Bot className="h-5 w-5" />,
+    title: "Moteur IA multi-modèles",
+    desc: "Choix entre GPT-5.4 Nano, GPT-5.4 Mini, GPT-5.4 et GPT-5.3 Codex selon le niveau de profondeur attendu.",
+  },
+  {
+    icon: <GitBranch className="h-5 w-5" />,
+    title: "Recherche parallèle GitHub",
+    desc: "L'IA génère plusieurs requêtes, Vaultify interroge l'API GitHub en parallèle puis déduplique les résultats.",
+  },
+  {
+    icon: <Database className="h-5 w-5" />,
+    title: "Scoring basé sur données réelles",
+    desc: "Le score combine métadonnées GitHub (langage, stars, topics, activité, licence) et analyse IA structurée.",
+  },
+  {
+    icon: <Volume2 className="h-5 w-5" />,
+    title: "Assistant conversationnel vocal",
+    desc: "Le widget My AfriChat est intégré avec réponse texte + audio (TTS) pour l'accompagnement utilisateur.",
+  },
+];
+
+const WORKFLOW_STEPS = [
+  {
+    step: "01",
+    title: "Saisie d'un besoin",
+    desc: "Vous écrivez une intention en langage naturel (ex: stack, usage, contrainte produit).",
+  },
+  {
+    step: "02",
+    title: "Reformulation IA",
+    desc: "Vaultify produit des requêtes GitHub complémentaires pour couvrir des angles différents.",
+  },
+  {
+    step: "03",
+    title: "Collecte + fusion",
+    desc: "Les résultats GitHub sont récupérés, fusionnés et dédupliqués pour construire une base exploitable.",
+  },
+  {
+    step: "04",
+    title: "Scoring et synthèse",
+    desc: "L'IA attribue un score de pertinence, génère un résumé décisionnel, des cas d'usage et points forts.",
+  },
+  {
+    step: "05",
+    title: "Capitalisation",
+    desc: "Vous sauvegardez en favoris, ajoutez des tags/notes, créez des collections et exportez en JSON/Markdown.",
+  },
+];
+
+const TRUST_ITEMS = [
+  {
+    icon: <ShieldCheck className="h-5 w-5" />,
+    title: "Local-first par défaut",
+    desc: "Favoris, historique, collections et cache sont stockés dans le navigateur de l'utilisateur.",
+  },
+  {
+    icon: <KeyRound className="h-5 w-5" />,
+    title: "Token GitHub optionnel",
+    desc: "Sans token: usage possible. Avec token: quotas API GitHub élargis pour des explorations plus profondes.",
+  },
+  {
+    icon: <Workflow className="h-5 w-5" />,
+    title: "Pipeline transparent",
+    desc: "Le fonctionnement est explicite: requête -> collecte GitHub -> scoring IA -> actions utilisateur.",
+  },
+  {
+    icon: <ShieldAlert className="h-5 w-5" />,
+    title: "Limites connues",
+    desc: "Les réponses IA restent des aides à la décision; validez toujours README, licence et activité du projet.",
   },
 ];
 
@@ -213,6 +307,100 @@ const Landing = () => {
 
       <section className="border-b border-border py-16 sm:py-24 bg-card/50">
         <div className="container px-4">
+          <div className="mx-auto max-w-3xl text-center mb-12">
+            <h2 className="font-display text-2xl sm:text-3xl text-foreground">IA intégrées</h2>
+            <p className="mt-3 text-muted-foreground font-body">
+              Les différentes couches IA de Vaultify sont orientées décision produit et sélection technique.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-5xl grid gap-4 grid-cols-1 sm:grid-cols-2">
+            {IA_STACK.map((item) => (
+              <InfoCard key={item.title} icon={item.icon} title={item.title} desc={item.desc} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border py-16 sm:py-24">
+        <div className="container px-4">
+          <div className="mx-auto max-w-3xl text-center mb-12">
+            <h2 className="font-display text-2xl sm:text-3xl text-foreground">Fonctionnement détaillé</h2>
+            <p className="mt-3 text-muted-foreground font-body">
+              Du texte utilisateur au plan d'action exploitable, chaque étape est conçue pour réduire le temps de décision.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-5xl grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            {WORKFLOW_STEPS.map((item) => (
+              <FlowCard key={item.step} step={item.step} title={item.title} desc={item.desc} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border py-16 sm:py-24 bg-card">
+        <div className="container px-4">
+          <div className="mx-auto max-w-3xl text-center mb-12">
+            <h2 className="font-display text-2xl sm:text-3xl text-foreground">Transparence & confiance</h2>
+            <p className="mt-3 text-muted-foreground font-body">
+              Informations utiles à connaître avant usage intensif de l'outil.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-5xl grid gap-4 grid-cols-1 sm:grid-cols-2">
+            {TRUST_ITEMS.map((item) => (
+              <InfoCard key={item.title} icon={item.icon} title={item.title} desc={item.desc} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border py-16 sm:py-24 bg-card/40">
+        <div className="container px-4">
+          <div className="mx-auto max-w-5xl grid gap-4 grid-cols-1 lg:grid-cols-3">
+            <article className="rounded-xl border border-border bg-card p-6 lg:col-span-2">
+              <h2 className="font-display text-2xl sm:text-3xl text-foreground">Créateur</h2>
+              <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body leading-relaxed">
+                Vaultify est conçu et développé par <strong className="text-foreground">Elton Ronald Bill Hounnou</strong>,
+                développeur frontend. Le projet vise à proposer une expérience claire, rapide et utile pour la
+                découverte de repositories GitHub et l'exploration de talents techniques.
+              </p>
+              <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2">
+                <CreatorStat label="Nom" value="Elton Ronald Bill Hounnou" />
+                <CreatorStat label="Rôle" value="Développeur Frontend" />
+                <CreatorStat label="Mission" value="Rendre la recherche open source plus actionnable" />
+                <CreatorStat label="Produit" value="Vaultify" />
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-border bg-card p-6">
+              <h3 className="font-label text-base text-foreground">Ce que le visiteur doit savoir</h3>
+              <div className="mt-4 space-y-3">
+                <VisitorPoint
+                  icon={<CheckCircle2 className="h-4 w-4 text-primary" />}
+                  text="Aucun onboarding complexe: l'outil est utilisable immédiatement."
+                />
+                <VisitorPoint
+                  icon={<CheckCircle2 className="h-4 w-4 text-primary" />}
+                  text="Le token GitHub reste optionnel, mais améliore les quotas de recherche."
+                />
+                <VisitorPoint
+                  icon={<CheckCircle2 className="h-4 w-4 text-primary" />}
+                  text="Les résultats IA servent d'aide à la décision et non d'audit absolu."
+                />
+                <VisitorPoint
+                  icon={<UserRound className="h-4 w-4 text-primary" />}
+                  text="Le projet valorise la communauté tech francophone africaine."
+                />
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border py-16 sm:py-24 bg-card/50">
+        <div className="container px-4">
           <div className="mx-auto max-w-3xl text-center mb-10">
             <h2 className="font-display text-2xl sm:text-3xl text-foreground">Questions fréquentes</h2>
           </div>
@@ -250,7 +438,7 @@ const Landing = () => {
       <footer className="py-6">
         <div className="container px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground font-body">
           <span className="font-display text-sm text-foreground">Vaultify</span>
-          <span>Communauté tech francophone africaine</span>
+          <span>Conçu par Elton Ronald Bill Hounnou</span>
           <div className="flex items-center gap-1">
             <Globe className="h-3 w-3" />
             <span>Gratuit · Open Source</span>
@@ -303,6 +491,38 @@ const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode; title: stri
     </div>
     <h3 className="font-label text-sm text-foreground">{title}</h3>
     <p className="mt-1 text-xs text-muted-foreground font-body">{desc}</p>
+  </div>
+);
+
+const InfoCard = ({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) => (
+  <article className="rounded-xl border border-border bg-card p-5 card-hover">
+    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-foreground">
+      {icon}
+    </div>
+    <h3 className="font-label text-sm text-foreground">{title}</h3>
+    <p className="mt-1 text-sm text-muted-foreground font-body">{desc}</p>
+  </article>
+);
+
+const FlowCard = ({ step, title, desc }: { step: string; title: string; desc: string }) => (
+  <article className="rounded-xl border border-border bg-card p-4 card-hover">
+    <span className="font-display text-2xl text-muted-foreground/40">{step}</span>
+    <h3 className="mt-2 font-label text-sm text-foreground">{title}</h3>
+    <p className="mt-1 text-xs text-muted-foreground font-body">{desc}</p>
+  </article>
+);
+
+const CreatorStat = ({ label, value }: { label: string; value: string }) => (
+  <div className="rounded-lg border border-border bg-secondary/50 p-3">
+    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-label">{label}</p>
+    <p className="mt-1 text-sm text-foreground font-body">{value}</p>
+  </div>
+);
+
+const VisitorPoint = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
+  <div className="flex items-start gap-2 text-sm text-muted-foreground font-body">
+    <span className="mt-0.5">{icon}</span>
+    <p>{text}</p>
   </div>
 );
 
