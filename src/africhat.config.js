@@ -128,14 +128,14 @@ const afriChatConfig = {
   },
   assistant: {
     tone: "friendly",
-    voice: "alloy",
+    voice: "nova",
     persona:
       "Conseiller produit Vaultify. Reponses claires, factuelles, actionnables, centrees sur les fonctionnalites reelles de la plateforme.",
     audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, true),
     multilingual: true,
   },
   integration: {
-    mode: "fullscreen",
+    mode: "floating",
     zIndex: 999999,
     position: "bottom-right",
   },
