@@ -46,7 +46,8 @@ interface SearchFilters {
 
 function getHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -119,27 +120,127 @@ export async function getRepoReadme(owner: string, repo: string, token?: string)
   }
 }
 
-// Deep search for Benin devs: paginated + multi-location
 const BENIN_LOCATIONS = [
-  "Benin", "Bénin", "Cotonou", "Porto-Novo", "Parakou",
-  "Abomey-Calavi", "Abomey", "Bohicon", "Natitingou",
-  "Djougou", "Lokossa", "Ouidah", "Kandi", "Savalou",
-  "Comè", "Dassa-Zoumè", "Malanville", "Pobè", "Sakété",
-  "Sèmè-Podji", "Allada", "Aplahoué", "Bembèrèkè", "Tchaourou"
+  "Benin",
+  "Bénin",
+  "Cotonou",
+  "Porto-Novo",
+  "Porto Novo",
+  "Parakou",
+  "Abomey-Calavi",
+  "Abomey",
+  "Bohicon",
+  "Natitingou",
+  "Djougou",
+  "Lokossa",
+  "Ouidah",
+  "Kandi",
+  "Savalou",
+  "Comè",
+  "Dassa-Zoumè",
+  "Malanville",
+  "Pobè",
+  "Sakété",
+  "Sèmè-Podji",
+  "Allada",
+  "Aplahoué",
+  "Bembèrèkè",
+  "Tchaourou",
 ];
+
+const BENIN_KEYWORDS = [
+  "benin",
+  "bénin",
+  "cotonou",
+  "porto",
+  "parakou",
+  "abomey",
+  "ouidah",
+  "natitingou",
+  "developer",
+  "software",
+  "engineer",
+  "développeur",
+  "freelance",
+];
+
+const SEARCH_REQUEST_PLAN = {
+  anonymous: {
+    maxQueries: 8,
+    extraPagesForTopQueries: 0,
+    maxRequests: 8,
+    batchSize: 3,
+  },
+  authenticated: {
+    maxQueries: 14,
+    extraPagesForTopQueries: 4,
+    maxRequests: 22,
+    batchSize: 6,
+  },
+} as const;
+
+function dedupeQueries(queries: string[]): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  for (const q of queries) {
+    const normalized = q.trim().replace(/\s+/g, " ");
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+
+  return deduped;
+}
 
 async function fetchUsersPage(
   q: string,
   page: number,
   perPage: number,
   token?: string
-): Promise<{ items: GitHubUser[]; total_count: number }> {
+): Promise<{ items: GitHubUser[]; total_count: number; incomplete_results: boolean }> {
   const res = await fetch(
     `${GITHUB_API}/search/users?q=${encodeURIComponent(q)}&sort=followers&order=desc&per_page=${perPage}&page=${page}`,
     { headers: getHeaders(token) }
   );
-  if (!res.ok) return { items: [], total_count: 0 };
+  if (!res.ok) return { items: [], total_count: 0, incomplete_results: false };
   return res.json();
+}
+
+function buildUserQueryParts(
+  query: string,
+  filters?: { language?: string; minFollowers?: number; minRepos?: number }
+): string[] {
+  const typed = "type:user";
+  const qualifiers = [
+    filters?.language ? `language:${filters.language}` : "",
+    filters?.minFollowers ? `followers:>=${filters.minFollowers}` : "",
+    filters?.minRepos ? `repos:>=${filters.minRepos}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const userTerm = query.trim();
+  const identityProbe = userTerm ? `${userTerm} in:login,name,fullname,bio,company,blog` : "";
+
+  const broadQueries = [
+    [userTerm, 'location:"Benin"', typed, qualifiers].filter(Boolean).join(" "),
+    [identityProbe, typed, qualifiers, 'location:"Benin"'].filter(Boolean).join(" "),
+    ["benin in:login,name,fullname,bio,company,blog", typed, qualifiers].filter(Boolean).join(" "),
+  ];
+
+  const locationQueries = BENIN_LOCATIONS.flatMap((loc) => {
+    const byLocation = [userTerm, `location:"${loc}"`, typed, qualifiers].filter(Boolean).join(" ");
+    const byIdentity = [`${loc} in:login,name,fullname,bio,company,blog`, typed, qualifiers].filter(Boolean).join(" ");
+    return [byLocation, byIdentity];
+  });
+
+  const keywordQueries = BENIN_KEYWORDS.map((kw) => {
+    const base = `${kw} in:login,name,fullname,bio,company,blog`;
+    return [userTerm, base, typed, qualifiers].filter(Boolean).join(" ");
+  });
+
+  return dedupeQueries([...broadQueries, ...locationQueries, ...keywordQueries]);
 }
 
 export async function searchBeninDevelopers(
@@ -149,16 +250,9 @@ export async function searchBeninDevelopers(
   token?: string,
   filters?: { language?: string; minFollowers?: number; minRepos?: number }
 ): Promise<{ users: GitHubUser[]; totalCount: number }> {
-  const locations = BENIN_LOCATIONS.slice(0, 14);
-  const locationQuery = locations.map(l => `location:"${l}"`).join(" ");
-
-  let qualifiers = "";
-  if (filters?.language) qualifiers += ` language:${filters.language}`;
-  if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
-  if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
-
-  const q = query ? `${query} ${locationQuery}${qualifiers}` : `${locationQuery}${qualifiers}`;
-  const data = await fetchUsersPage(q, page, perPage, token);
+  const queries = buildUserQueryParts(query, filters);
+  const firstQuery = queries[0] || `location:"Benin" type:user`;
+  const data = await fetchUsersPage(firstQuery, page, perPage, token);
   return { users: data.items || [], totalCount: data.total_count || 0 };
 }
 
@@ -167,42 +261,36 @@ export async function deepSearchBeninDevelopers(
   token?: string,
   filters?: { language?: string; minFollowers?: number; minRepos?: number }
 ): Promise<{ users: GitHubUser[]; totalCount: number }> {
-  // Split locations into groups for parallel queries
-  const locationGroups = [
-    ['Benin', 'Bénin', 'Cotonou'],
-    ['Porto-Novo', 'Abomey-Calavi', 'Parakou'],
-    ['Bohicon', 'Natitingou', 'Djougou', 'Ouidah'],
-    ['Lokossa', 'Kandi', 'Savalou', 'Comè'],
-    ['Dassa-Zoumè', 'Malanville', 'Pobè', 'Sakété'],
-    ['Sèmè-Podji', 'Allada', 'Aplahoué', 'Bembèrèkè', 'Tchaourou'],
-  ];
+  const searchQueries = buildUserQueryParts(query, filters);
+  const plan = token ? SEARCH_REQUEST_PLAN.authenticated : SEARCH_REQUEST_PLAN.anonymous;
+  const perPage = 100;
 
-  let qualifiers = "";
-  if (filters?.language) qualifiers += ` language:${filters.language}`;
-  if (filters?.minFollowers) qualifiers += ` followers:>=${filters.minFollowers}`;
-  if (filters?.minRepos) qualifiers += ` repos:>=${filters.minRepos}`;
+  const selectedQueries = searchQueries.slice(0, plan.maxQueries);
+  const requestPlan: Array<{ q: string; page: number }> = [];
 
-  // For each group, fetch multiple pages
-  const maxPages = token ? 3 : 1;
-
-  const allPromises: Promise<{ items: GitHubUser[]; total_count: number }>[] = [];
-
-  for (const group of locationGroups) {
-    const locQ = group.map(l => `location:"${l}"`).join(" ");
-    const q = query ? `${query} ${locQ}${qualifiers}` : `${locQ}${qualifiers}`;
-    for (let page = 1; page <= maxPages; page++) {
-      allPromises.push(fetchUsersPage(q, page, 100, token));
+  selectedQueries.forEach((q, index) => {
+    requestPlan.push({ q, page: 1 });
+    if (plan.extraPagesForTopQueries > 0 && index < plan.extraPagesForTopQueries) {
+      requestPlan.push({ q, page: 2 });
     }
+  });
+
+  const boundedPlan = requestPlan.slice(0, plan.maxRequests);
+  const results: Array<{ items: GitHubUser[]; total_count: number; incomplete_results: boolean }> = [];
+
+  for (let i = 0; i < boundedPlan.length; i += plan.batchSize) {
+    const chunk = boundedPlan.slice(i, i + plan.batchSize);
+    const chunkResults = await Promise.all(
+      chunk.map(({ q, page }) => fetchUsersPage(q, page, perPage, token))
+    );
+    results.push(...chunkResults);
   }
 
-  const results = await Promise.all(allPromises);
   const seen = new Set<number>();
   const merged: GitHubUser[] = [];
-  let maxTotal = 0;
 
   for (const data of results) {
-    maxTotal = Math.max(maxTotal, data.total_count || 0);
-    for (const user of (data.items || [])) {
+    for (const user of data.items || []) {
       if (!seen.has(user.id)) {
         seen.add(user.id);
         merged.push(user);

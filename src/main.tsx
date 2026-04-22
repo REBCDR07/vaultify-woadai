@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { mountAfriChatWidget } from "@/lib/africhat";
 
 // Service Worker registration with iframe/preview guard
 const isInIframe = (() => {
@@ -15,7 +16,10 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-if ("serviceWorker" in navigator && !isInIframe && !isPreviewHost) {
+const shouldRegisterServiceWorker =
+  import.meta.env.PROD && !isInIframe && !isPreviewHost;
+
+if ("serviceWorker" in navigator && shouldRegisterServiceWorker) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
@@ -42,11 +46,31 @@ if ("serviceWorker" in navigator && !isInIframe && !isPreviewHost) {
       })
       .catch((err) => console.error("SW registration failed:", err));
   });
-} else if (isPreviewHost || isInIframe) {
-  // Unregister any existing service workers in preview/iframe contexts
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
-  });
+} else {
+  // Dev/preview/iframe contexts must stay SW-free to avoid stale module caches.
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
+    .catch(() => undefined);
+
+  caches
+    .keys()
+    .then((keys) => Promise.all(keys.filter((k) => k.startsWith("vaultify-")).map((k) => caches.delete(k))))
+    .catch(() => undefined);
+
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    sessionStorage.setItem("vaultify-dev-clean", "1");
+  }
+}
+
+if ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") && !sessionStorage.getItem("vaultify-dev-reloaded")) {
+  const marked = sessionStorage.getItem("vaultify-dev-clean") === "1";
+  if (marked) {
+    sessionStorage.setItem("vaultify-dev-reloaded", "1");
+    window.location.reload();
+  }
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+mountAfriChatWidget();

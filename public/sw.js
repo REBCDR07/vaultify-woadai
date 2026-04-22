@@ -8,6 +8,16 @@ const STATIC_ASSETS = [
   "/icon-512.png",
 ];
 
+function isDevAsset(url, request) {
+  if (url.pathname.startsWith("/src/")) return true;
+  if (url.pathname.startsWith("/@vite/")) return true;
+  if (url.pathname.startsWith("/@id/")) return true;
+  if (url.pathname.includes("/node_modules/.vite/")) return true;
+  if (request.headers.get("accept")?.includes("text/x-vite-module")) return true;
+  if (url.searchParams.has("t")) return true;
+  return false;
+}
+
 // Install: cache static assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,8 +44,15 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET
   if (request.method !== "GET") return;
 
+  // Never cache Vite dev/HMR assets.
+  if (isDevAsset(url, request)) return;
+
   // API calls: network-first with cache fallback
-  if (url.hostname === "api.github.com" || url.hostname === "api.groq.com") {
+  if (
+    url.hostname === "api.github.com" ||
+    url.hostname === "api.groq.com" ||
+    url.hostname === "build.lewisnote.com"
+  ) {
     event.respondWith(
       fetch(request)
         .then((response) => {

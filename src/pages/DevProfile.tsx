@@ -2,10 +2,23 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import { getUserDetails, getUserRepos, type GitHubUser, type GitHubRepo } from "@/lib/github";
-import { analyzeDevProfile } from "@/lib/groq";
+import { analyzeDevProfile } from "@/lib/ai";
 import {
-  ArrowLeft, ExternalLink, MapPin, Building, Globe, Users, Star,
-  GitFork, Zap, Loader2, Code, Calendar, Trophy, Lightbulb, Briefcase
+  ArrowLeft,
+  ExternalLink,
+  MapPin,
+  Building,
+  Globe,
+  Users,
+  Star,
+  GitFork,
+  Zap,
+  Loader2,
+  Code,
+  Calendar,
+  Trophy,
+  Lightbulb,
+  Briefcase,
 } from "lucide-react";
 
 interface AiProfile {
@@ -19,7 +32,7 @@ interface AiProfile {
 const DevProfile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { githubToken, groqApiKey, groqModel, addTokens } = useStore();
+  const { githubToken, aiModel, addTokens } = useStore();
 
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -27,9 +40,12 @@ const DevProfile = () => {
   const [aiProfile, setAiProfile] = useState<AiProfile | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  const aiEnabled = true;
+
   useEffect(() => {
     if (!username) return;
     setLoading(true);
+
     Promise.all([
       getUserDetails(username, githubToken || undefined),
       getUserRepos(username, githubToken || undefined),
@@ -40,9 +56,9 @@ const DevProfile = () => {
         setRepos(sorted);
         setLoading(false);
 
-        if (groqApiKey) {
+        if (aiEnabled) {
           setAiLoading(true);
-          analyzeDevProfile(groqApiKey, groqModel, userData, sorted.slice(0, 15))
+          analyzeDevProfile(undefined, aiModel, userData, sorted.slice(0, 15))
             .then(({ profile, tokens }) => {
               setAiProfile(profile);
               addTokens(tokens);
@@ -53,7 +69,7 @@ const DevProfile = () => {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [username]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [username, githubToken, aiModel, aiEnabled, addTokens]);
 
   if (loading) {
     return (
@@ -93,7 +109,6 @@ const DevProfile = () => {
           Retour
         </button>
 
-        {/* Profile header */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
             <img
@@ -102,14 +117,10 @@ const DevProfile = () => {
               className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border-2 border-primary/30"
             />
             <div className="flex-1 text-center sm:text-left min-w-0">
-              <h1 className="text-xl sm:text-2xl font-heading text-foreground">
-                {user.name || user.login}
-              </h1>
+              <h1 className="text-xl sm:text-2xl font-heading text-foreground">{user.name || user.login}</h1>
               <p className="text-sm text-muted-foreground font-body">@{user.login}</p>
 
-              {user.bio && (
-                <p className="mt-2 text-sm text-foreground/80 font-body">{user.bio}</p>
-              )}
+              {user.bio && <p className="mt-2 text-sm text-foreground/80 font-body">{user.bio}</p>}
 
               <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-body">
                 {user.location && (
@@ -152,7 +163,6 @@ const DevProfile = () => {
             </div>
           </div>
 
-          {/* Stats bar */}
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
             <StatBadge icon={<Users className="h-3.5 w-3.5 text-primary" />} value={user.followers} label="Followers" />
             <StatBadge icon={<Users className="h-3.5 w-3.5 text-muted-foreground" />} value={user.following} label="Following" />
@@ -161,14 +171,10 @@ const DevProfile = () => {
             <StatBadge icon={<GitFork className="h-3.5 w-3.5 text-primary" />} value={totalForks} label="Forks total" />
           </div>
 
-          {/* Languages */}
           {languages.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
               {languages.slice(0, 10).map((lang) => (
-                <span
-                  key={lang}
-                  className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-label text-primary"
-                >
+                <span key={lang} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-label text-primary">
                   {lang}
                 </span>
               ))}
@@ -176,7 +182,6 @@ const DevProfile = () => {
           )}
         </div>
 
-        {/* AI Analysis */}
         {aiLoading && (
           <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4 animate-pulse">
             <div className="flex items-center gap-2 text-primary">
@@ -233,7 +238,6 @@ const DevProfile = () => {
           </div>
         )}
 
-        {/* Popular repos */}
         <div className="mt-6">
           <h2 className="mb-3 font-label text-sm font-medium text-muted-foreground uppercase">
             Repositories populaires ({repos.length})
@@ -245,14 +249,8 @@ const DevProfile = () => {
                 onClick={() => navigate(`/repo/${r.full_name}`)}
                 className="rounded-xl border border-border bg-card p-3 text-left card-hover animate-slide-up"
               >
-                <h3 className="text-sm font-heading text-foreground truncate hover:text-primary transition-colors">
-                  {r.name}
-                </h3>
-                {r.description && (
-                  <p className="mt-1 text-xs text-muted-foreground font-body line-clamp-2">
-                    {r.description}
-                  </p>
-                )}
+                <h3 className="text-sm font-heading text-foreground truncate hover:text-primary transition-colors">{r.name}</h3>
+                {r.description && <p className="mt-1 text-xs text-muted-foreground font-body line-clamp-2">{r.description}</p>}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Star className="h-3 w-3 text-warning" />
@@ -262,11 +260,7 @@ const DevProfile = () => {
                     <GitFork className="h-3 w-3" />
                     {r.forks_count}
                   </span>
-                  {r.language && (
-                    <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">
-                      {r.language}
-                    </span>
-                  )}
+                  {r.language && <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">{r.language}</span>}
                 </div>
               </button>
             ))}

@@ -5,8 +5,22 @@ import { deepSearchBeninDevelopers, getUserDetails, type GitHubUser } from "@/li
 import { Search, MapPin, Users, ExternalLink, Building, Globe, Loader2, Filter, ChevronDown, X } from "lucide-react";
 
 const LANGUAGES = [
-  "JavaScript", "TypeScript", "Python", "PHP", "Java", "Go",
-  "Rust", "C", "C++", "C#", "Ruby", "Swift", "Kotlin", "Dart", "HTML", "CSS"
+  "JavaScript",
+  "TypeScript",
+  "Python",
+  "PHP",
+  "Java",
+  "Go",
+  "Rust",
+  "C",
+  "C++",
+  "C#",
+  "Ruby",
+  "Swift",
+  "Kotlin",
+  "Dart",
+  "HTML",
+  "CSS",
 ];
 
 interface Filters {
@@ -27,54 +41,63 @@ const BeninDevs = () => {
   const [filters, setFilters] = useState<Filters>({ language: "", minFollowers: 0, minRepos: 0 });
   const [activeFilters, setActiveFilters] = useState<Filters>({ language: "", minFollowers: 0, minRepos: 0 });
 
-  const performSearch = useCallback(async (q: string, f: Filters) => {
-    setLoading(true);
-    try {
-      const apiFilters = {
-        language: f.language || undefined,
-        minFollowers: f.minFollowers || undefined,
-        minRepos: f.minRepos || undefined,
-      };
-      const { users: found, totalCount: count } = await deepSearchBeninDevelopers(
-        q, githubToken || undefined, apiFilters
-      );
-      setTotalCount(count);
+  const performSearch = useCallback(
+    async (q: string, f: Filters) => {
+      setLoading(true);
+      try {
+        const apiFilters = {
+          language: f.language || undefined,
+          minFollowers: f.minFollowers || undefined,
+          minRepos: f.minRepos || undefined,
+        };
 
-      if (githubToken) {
+        const { users: found, totalCount: count } = await deepSearchBeninDevelopers(
+          q,
+          githubToken || undefined,
+          apiFilters
+        );
+
+        setTotalCount(count);
+
+        const limit = githubToken ? 120 : 45;
+        const topCandidates = found.slice(0, limit);
+
         const enriched = new Map<string, GitHubUser>();
-        for (let i = 0; i < found.length; i += 5) {
-          const batch = found.slice(i, i + 5);
+        for (let i = 0; i < topCandidates.length; i += 10) {
+          const batch = topCandidates.slice(i, i + 10);
           const details = await Promise.all(
-            batch.map((u) => getUserDetails(u.login, githubToken).catch(() => null))
+            batch.map((u) => getUserDetails(u.login, githubToken || undefined).catch(() => null))
           );
           details.forEach((d) => {
             if (d) enriched.set(d.login, d);
           });
         }
+
         setEnrichedUsers(enriched);
 
-        const filtered = found.filter((u) => {
-          const d = enriched.get(u.login);
-          if (!d) return true;
-          if (f.minFollowers && d.followers < f.minFollowers) return false;
-          if (f.minRepos && d.public_repos < f.minRepos) return false;
-          return true;
-        });
-        filtered.sort((a, b) => {
-          const fa = enriched.get(a.login)?.followers || 0;
-          const fb = enriched.get(b.login)?.followers || 0;
-          return fb - fa;
-        });
+        const fallbackToBase = (u: GitHubUser) => enriched.get(u.login) || u;
+        const filtered = topCandidates
+          .map(fallbackToBase)
+          .filter((u) => {
+            if (f.minFollowers && u.followers < f.minFollowers) return false;
+            if (f.minRepos && u.public_repos < f.minRepos) return false;
+            return true;
+          })
+          .sort((a, b) => {
+            const scoreA = a.followers * 2 + a.public_repos;
+            const scoreB = b.followers * 2 + b.public_repos;
+            return scoreB - scoreA;
+          });
+
         setUsers(filtered);
-      } else {
-        setUsers(found);
+      } catch (e) {
+        console.error("Search devs error:", e);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error("Search devs error:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [githubToken]);
+    },
+    [githubToken]
+  );
 
   useEffect(() => {
     performSearch("", activeFilters);
@@ -106,23 +129,21 @@ const BeninDevs = () => {
   return (
     <div className="container px-4 py-6">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="font-heading text-2xl sm:text-3xl text-foreground flex items-center justify-center gap-3">
             <span className="text-2xl sm:text-3xl">🇧🇯</span>
             Devs Béninois
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-body">
-            Découvrez les talents tech du Bénin — cliquez sur un profil pour l'analyser en détail
+            Recherche élargie par villes, variantes de localisation et mots-clés de profil GitHub
           </p>
           {!githubToken && (
             <p className="mt-2 text-xs text-warning font-body">
-              Ajoutez votre token GitHub dans les paramètres pour des résultats plus complets
+              Ajoutez votre token GitHub dans les paramètres pour explorer plus de profils (pagination + enrichissement)
             </p>
           )}
         </div>
 
-        {/* Search + Filter bar */}
         <div className="mb-4 flex gap-2">
           <form onSubmit={handleSearch} className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -130,7 +151,7 @@ const BeninDevs = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par nom, langage..."
+              placeholder="Rechercher par nom, langage, mot-clé..."
               className="w-full rounded-xl border border-border bg-card pl-10 pr-4 py-3 text-sm font-body text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </form>
@@ -153,14 +174,11 @@ const BeninDevs = () => {
           </button>
         </div>
 
-        {/* Filter panel */}
         {showFilters && (
           <div className="mb-6 rounded-xl border border-border bg-card p-4 animate-slide-up">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div>
-                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
-                  Langage
-                </label>
+                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">Langage</label>
                 <select
                   value={filters.language}
                   onChange={(e) => setFilters((f) => ({ ...f, language: e.target.value }))}
@@ -168,14 +186,14 @@ const BeninDevs = () => {
                 >
                   <option value="">Tous les langages</option>
                   {LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>{lang}</option>
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
-                  Followers min
-                </label>
+                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">Followers min</label>
                 <input
                   type="number"
                   min={0}
@@ -186,9 +204,7 @@ const BeninDevs = () => {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">
-                  Repos min
-                </label>
+                <label className="mb-1.5 block text-xs font-label text-muted-foreground uppercase tracking-wider">Repos min</label>
                 <input
                   type="number"
                   min={0}
@@ -220,13 +236,19 @@ const BeninDevs = () => {
           </div>
         )}
 
-        {/* Active filter pills */}
         {hasActiveFilters && (
           <div className="mb-4 flex flex-wrap gap-2">
             {activeFilters.language && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-label text-primary">
                 {activeFilters.language}
-                <button onClick={() => { const f = { ...filters, language: "" }; setFilters(f); setActiveFilters(f); performSearch(query, f); }}>
+                <button
+                  onClick={() => {
+                    const f = { ...filters, language: "" };
+                    setFilters(f);
+                    setActiveFilters(f);
+                    performSearch(query, f);
+                  }}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </span>
@@ -234,7 +256,14 @@ const BeninDevs = () => {
             {activeFilters.minFollowers > 0 && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-label text-primary">
                 ≥{activeFilters.minFollowers} followers
-                <button onClick={() => { const f = { ...filters, minFollowers: 0 }; setFilters(f); setActiveFilters(f); performSearch(query, f); }}>
+                <button
+                  onClick={() => {
+                    const f = { ...filters, minFollowers: 0 };
+                    setFilters(f);
+                    setActiveFilters(f);
+                    performSearch(query, f);
+                  }}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </span>
@@ -242,7 +271,14 @@ const BeninDevs = () => {
             {activeFilters.minRepos > 0 && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-label text-primary">
                 ≥{activeFilters.minRepos} repos
-                <button onClick={() => { const f = { ...filters, minRepos: 0 }; setFilters(f); setActiveFilters(f); performSearch(query, f); }}>
+                <button
+                  onClick={() => {
+                    const f = { ...filters, minRepos: 0 };
+                    setFilters(f);
+                    setActiveFilters(f);
+                    performSearch(query, f);
+                  }}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </span>
@@ -250,33 +286,30 @@ const BeninDevs = () => {
           </div>
         )}
 
-        {/* Count */}
         <div className="mb-4 text-xs text-muted-foreground font-label">
-          {loading ? "Recherche en profondeur..." : `${users.length} développeurs trouvés`}
+          {loading ? "Recherche en profondeur..." : `${users.length} développeurs affichés • ${totalCount} candidats bruts`}
         </div>
 
-        {/* Results */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-xs text-muted-foreground font-body">Recherche parallèle sur 14 villes béninoises...</p>
+            <p className="text-xs text-muted-foreground font-body">Recherche parallèle multi-queries en cours...</p>
           </div>
         ) : (
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {users.map((user, index) => {
-              const details = getUser(user.login);
+              const details = getUser(user.login) || user;
               return (
                 <button
-                  key={user.id}
-                  onClick={() => navigate(`/dev/${user.login}`)}
+                  key={details.id}
+                  onClick={() => navigate(`/dev/${details.login}`)}
                   className="group rounded-xl border border-border bg-card p-4 card-hover animate-slide-up text-left"
                 >
-                  {/* Rank badge */}
                   <div className="flex items-start gap-3">
                     <div className="relative">
                       <img
-                        src={user.avatar_url}
-                        alt={user.login}
+                        src={details.avatar_url}
+                        alt={details.login}
                         className="h-12 w-12 rounded-full border border-border"
                       />
                       <span className="absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
@@ -287,37 +320,33 @@ const BeninDevs = () => {
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
                           <h3 className="text-sm font-heading text-foreground group-hover:text-primary transition-colors truncate">
-                            {details?.name || user.login}
+                            {details.name || details.login}
                           </h3>
-                          <p className="text-xs text-muted-foreground font-body">@{user.login}</p>
+                          <p className="text-xs text-muted-foreground font-body">@{details.login}</p>
                         </div>
                         <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
 
-                      {details?.bio && (
-                        <p className="mt-1.5 text-xs text-muted-foreground font-body line-clamp-2">{details.bio}</p>
-                      )}
+                      {details.bio && <p className="mt-1.5 text-xs text-muted-foreground font-body line-clamp-2">{details.bio}</p>}
 
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-body">
-                        {details?.location && (
+                        {details.location && (
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             {details.location}
                           </span>
                         )}
-                        {details?.company && (
+                        {details.company && (
                           <span className="flex items-center gap-1">
                             <Building className="h-3 w-3" />
                             {details.company}
                           </span>
                         )}
-                        {details && (
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {details.followers}
-                          </span>
-                        )}
-                        {details?.blog && (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {details.followers}
+                        </span>
+                        {details.blog && (
                           <span className="flex items-center gap-1 text-primary">
                             <Globe className="h-3 w-3" />
                             Site
@@ -325,16 +354,14 @@ const BeninDevs = () => {
                         )}
                       </div>
 
-                      {details && (
-                        <div className="mt-2 flex items-center gap-2 text-xs">
-                          <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">
-                            {details.public_repos} repos
-                          </span>
-                          <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">
-                            {details.following} following
-                          </span>
-                        </div>
-                      )}
+                      <div className="mt-2 flex items-center gap-2 text-xs">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">
+                          {details.public_repos} repos
+                        </span>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 font-label text-secondary-foreground">
+                          {details.following} following
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </button>

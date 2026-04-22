@@ -6,7 +6,7 @@ import SkeletonCard from "@/components/results/SkeletonCard";
 import SaveModal from "@/components/favorites/SaveModal";
 import { useStore } from "@/store/useStore";
 import { searchReposParallel, type GitHubRepo } from "@/lib/github";
-import { reformulateQuery, scoreAndSummarize, generateSuggestions } from "@/lib/groq";
+import { reformulateQuery, scoreAndSummarize, generateSuggestions } from "@/lib/ai";
 import { Zap, Filter } from "lucide-react";
 
 interface EnrichedRepo {
@@ -22,7 +22,15 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 min
 const Results = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
-  const { groqApiKey, groqModel, githubToken, addTokens, addSearchLog, favorites, cachedSearch, setCachedSearch } = useStore();
+  const {
+    aiModel,
+    githubToken,
+    addTokens,
+    addSearchLog,
+    favorites,
+    cachedSearch,
+    setCachedSearch,
+  } = useStore();
 
   const [results, setResults] = useState<EnrichedRepo[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -35,6 +43,8 @@ const Results = () => {
   const [showFilters, setShowFilters] = useState(false);
   const hasSearchedRef = useRef(false);
 
+  const aiEnabled = true;
+
   const performSearch = useCallback(async (q: string) => {
     if (!q) return;
     setLoading(true);
@@ -43,48 +53,69 @@ const Results = () => {
     setTokensUsed(0);
 
     let totalTokens = 0;
+    let nextSuggestions: string[] = [];
 
     try {
       let queries = [q];
 
-      if (groqApiKey) {
+      if (aiEnabled) {
         try {
-          const { queries: reformulated, tokens } = await reformulateQuery(groqApiKey, groqModel, q);
-          queries = reformulated;
+          const { queries: reformulated, tokens } = await reformulateQuery(undefined, aiModel, q);
+          queries = reformulated.length > 0 ? reformulated : [q];
           totalTokens += tokens;
         } catch (e) {
           console.error("Reformulation error:", e);
         }
       }
 
-      const repos = await searchReposParallel(queries, {
-        language: filterLang || undefined,
-        minStars: filterMinStars || undefined,
-      }, githubToken || undefined);
+      const repos = await searchReposParallel(
+        queries,
+        {
+          language: filterLang || undefined,
+          minStars: filterMinStars || undefined,
+        },
+        githubToken || undefined
+      );
 
       let enrichedResults: EnrichedRepo[];
 
-      if (groqApiKey && repos.length > 0) {
+      if (aiEnabled && repos.length > 0) {
         try {
           const { results: scored, tokens } = await scoreAndSummarize(
-            groqApiKey, groqModel, q, repos.slice(0, 30)
+            undefined,
+            aiModel,
+            q,
+            repos.slice(0, 40)
           );
           totalTokens += tokens;
 
-          const enriched: EnrichedRepo[] = scored.map((s) => {
-            const repo = repos.find((r) => r.full_name === s.full_name);
-            return repo ? { repo, score: s.score, summary: s.summary, useCases: s.useCases, strengths: s.strengths } : null;
-          }).filter(Boolean) as EnrichedRepo[];
+          const enriched: EnrichedRepo[] = scored
+            .map((s) => {
+              const repo = repos.find((r) => r.full_name === s.full_name);
+              return repo
+                ? {
+                    repo,
+                    score: s.score,
+                    summary: s.summary,
+                    useCases: s.useCases,
+                    strengths: s.strengths,
+                  }
+                : null;
+            })
+            .filter(Boolean) as EnrichedRepo[];
 
           const scoredNames = new Set(scored.map((s) => s.full_name));
           const unscored = repos.filter((r) => !scoredNames.has(r.full_name)).map((r) => ({ repo: r }));
           enrichedResults = [...enriched, ...unscored];
 
           try {
-            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(groqApiKey, groqModel, q);
+            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(undefined, aiModel, q);
+            nextSuggestions = sug;
             setSuggestions(sug);
             totalTokens += sugTokens;
-          } catch {}
+          } catch {
+            nextSuggestions = [];
+          }
         } catch (e) {
           console.error("Scoring error:", e);
           enrichedResults = repos.map((r) => ({ repo: r }));
@@ -95,14 +126,14 @@ const Results = () => {
 
       setResults(enrichedResults);
       setTokensUsed(totalTokens);
-      addTokens(totalTokens);
+      if (totalTokens > 0) addTokens(totalTokens);
+
       addSearchLog({ id: crypto.randomUUID(), query: q, searched_at: new Date().toISOString() });
 
-      // Cache results
       setCachedSearch({
         query: q,
         results: enrichedResults,
-        suggestions: [],
+        suggestions: nextSuggestions,
         tokensUsed: totalTokens,
         timestamp: Date.now(),
       });
@@ -111,17 +142,12 @@ const Results = () => {
     } finally {
       setLoading(false);
     }
-  }, [groqApiKey, groqModel, githubToken, filterLang, filterMinStars, addTokens, addSearchLog, setCachedSearch]);
+  }, [aiModel, aiEnabled, githubToken, filterLang, filterMinStars, addTokens, addSearchLog, setCachedSearch]);
 
   useEffect(() => {
     if (!query) return;
 
-    // Check cache first
-    if (
-      cachedSearch &&
-      cachedSearch.query === query &&
-      Date.now() - cachedSearch.timestamp < CACHE_TTL
-    ) {
+    if (cachedSearch && cachedSearch.query === query && Date.now() - cachedSearch.timestamp < CACHE_TTL) {
       setResults(cachedSearch.results);
       setSuggestions(cachedSearch.suggestions);
       setTokensUsed(cachedSearch.tokensUsed);
@@ -135,7 +161,6 @@ const Results = () => {
     }
   }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset ref when query changes
   useEffect(() => {
     hasSearchedRef.current = false;
   }, [query]);
@@ -179,8 +204,10 @@ const Results = () => {
               className="w-full sm:w-auto rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
             >
               <option value="">Tous</option>
-              {["JavaScript","TypeScript","Python","Rust","Go","Java","C++","Ruby","PHP","Swift","Kotlin","Dart"].map(l => (
-                <option key={l} value={l}>{l}</option>
+              {["JavaScript", "TypeScript", "Python", "Rust", "Go", "Java", "C++", "Ruby", "PHP", "Swift", "Kotlin", "Dart"].map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
               ))}
             </select>
           </div>
@@ -195,7 +222,10 @@ const Results = () => {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => { hasSearchedRef.current = false; performSearch(query); }}
+              onClick={() => {
+                hasSearchedRef.current = false;
+                performSearch(query);
+              }}
               className="rounded-lg bg-primary px-4 py-1.5 text-xs font-label text-primary-foreground hover:bg-primary/90"
             >
               Appliquer

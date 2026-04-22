@@ -33,28 +33,22 @@ export interface SearchLogEntry {
 
 export interface CachedSearchResult {
   query: string;
-  results: any[];
+  results: unknown[];
   suggestions: string[];
   tokensUsed: number;
   timestamp: number;
 }
 
 interface VaultifyState {
-  // Groq config
-  groqApiKey: string;
-  groqModel: string;
+  // AI config
+  aiModel: string;
   totalTokensUsed: number;
-  setGroqApiKey: (key: string) => void;
-  setGroqModel: (model: string) => void;
+  setAiModel: (model: string) => void;
   addTokens: (count: number) => void;
 
   // GitHub token
   githubToken: string;
   setGithubToken: (token: string) => void;
-
-  // Onboarding
-  onboardingDone: boolean;
-  setOnboardingDone: (done: boolean) => void;
 
   // Search cache
   cachedSearch: CachedSearchResult | null;
@@ -83,18 +77,14 @@ interface VaultifyState {
 export const useStore = create<VaultifyState>()(
   persist(
     (set) => ({
-      groqApiKey: "",
-      groqModel: DEFAULT_MODEL,
+      aiModel: DEFAULT_MODEL,
       totalTokensUsed: 0,
       githubToken: "",
-      onboardingDone: false,
       cachedSearch: null,
 
-      setGroqApiKey: (key) => set({ groqApiKey: key }),
-      setGroqModel: (model) => set({ groqModel: model }),
+      setAiModel: (model) => set({ aiModel: model }),
       addTokens: (count) => set((s) => ({ totalTokensUsed: s.totalTokensUsed + count })),
       setGithubToken: (token) => set({ githubToken: token }),
-      setOnboardingDone: (done) => set({ onboardingDone: done }),
       setCachedSearch: (cache) => set({ cachedSearch: cache }),
 
       favorites: [],

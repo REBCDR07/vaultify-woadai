@@ -1,14 +1,12 @@
-export const GROQ_MODELS = [
-  { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B Versatile", speed: "~280 t/s", badge: "Recommandé" },
-  { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant", speed: "~560 t/s", badge: "Stable" },
-  { id: "llama3-70b-8192", name: "GPT OSS 120B", speed: "~500 t/s", badge: "Stable" },
-  { id: "llama3-8b-8192", name: "GPT OSS 20B", speed: "~1000 t/s", badge: "Stable" },
-  { id: "meta-llama/llama-4-maverick-17b-128e-instruct", name: "Llama 4 Maverick 17B", speed: "—", badge: "Preview" },
-  { id: "meta-llama/llama-4-scout-17b-16e-instruct", name: "Llama 4 Scout 17B", speed: "—", badge: "Preview" },
-  { id: "qwen-qwq-32b", name: "Qwen 3 32B", speed: "—", badge: "Preview" },
+export const AI_MODELS = [
+  { id: "gpt-5.4-nano", name: "GPT-5.4 Nano", speed: "Ultra rapide", badge: "Economique" },
+  { id: "gpt-5.4-mini", name: "GPT-5.4 Mini", speed: "Equilibre", badge: "Recommande" },
+  { id: "gpt-5.4", name: "GPT-5.4", speed: "Approfondi", badge: "Expert" },
+  { id: "gpt-5.3-codex", name: "GPT-5.3 Codex", speed: "Code", badge: "Technique" },
 ] as const;
 
-export const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+export const DEFAULT_MODEL = "gpt-5.4-mini";
+export const REPO_ANALYSIS_MODEL = "gpt-5.3-codex";
 
 export const CATEGORIES = [
   { label: "UI Components", query: "UI component library" },
