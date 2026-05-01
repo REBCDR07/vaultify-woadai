@@ -10,7 +10,7 @@ import { Star, GitFork, Eye, AlertCircle, ExternalLink, Bookmark, ArrowLeft, Zap
 const RepoDetail = () => {
   const { owner, repo: repoName } = useParams();
   const navigate = useNavigate();
-  const { aiModel, githubToken, addTokens, favorites } = useStore();
+  const { aiModel, lewisApiKey, githubToken, addTokens, favorites } = useStore();
 
   const [repoData, setRepoData] = useState<GitHubRepo | null>(null);
   const [readme, setReadme] = useState("");
@@ -43,7 +43,7 @@ const RepoDetail = () => {
 
         if (aiEnabled) {
           setAiLoading(true);
-          generateRepoDetail(undefined, aiModel, {
+          generateRepoDetail(lewisApiKey, aiModel, {
             full_name: data.full_name,
             description: data.description,
             readme: rm,

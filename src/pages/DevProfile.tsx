@@ -32,7 +32,7 @@ interface AiProfile {
 const DevProfile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { githubToken, aiModel, addTokens } = useStore();
+  const { githubToken, aiModel, lewisApiKey, addTokens } = useStore();
 
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -58,7 +58,7 @@ const DevProfile = () => {
 
         if (aiEnabled) {
           setAiLoading(true);
-          analyzeDevProfile(undefined, aiModel, userData, sorted.slice(0, 15))
+          analyzeDevProfile(lewisApiKey, aiModel, userData, sorted.slice(0, 15))
             .then(({ profile, tokens }) => {
               setAiProfile(profile);
               addTokens(tokens);

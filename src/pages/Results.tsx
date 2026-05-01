@@ -24,6 +24,7 @@ const Results = () => {
   const query = searchParams.get("q") || "";
   const {
     aiModel,
+    lewisApiKey,
     githubToken,
     addTokens,
     addSearchLog,
@@ -60,7 +61,7 @@ const Results = () => {
 
       if (aiEnabled) {
         try {
-          const { queries: reformulated, tokens } = await reformulateQuery(undefined, aiModel, q);
+          const { queries: reformulated, tokens } = await reformulateQuery(lewisApiKey, aiModel, q);
           queries = reformulated.length > 0 ? reformulated : [q];
           totalTokens += tokens;
         } catch (e) {
@@ -82,7 +83,7 @@ const Results = () => {
       if (aiEnabled && repos.length > 0) {
         try {
           const { results: scored, tokens } = await scoreAndSummarize(
-            undefined,
+            lewisApiKey,
             aiModel,
             q,
             repos.slice(0, 40)
@@ -109,7 +110,7 @@ const Results = () => {
           enrichedResults = [...enriched, ...unscored];
 
           try {
-            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(undefined, aiModel, q);
+            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(lewisApiKey, aiModel, q);
             nextSuggestions = sug;
             setSuggestions(sug);
             totalTokens += sugTokens;
@@ -148,7 +149,7 @@ const Results = () => {
     if (!query) return;
 
     if (cachedSearch && cachedSearch.query === query && Date.now() - cachedSearch.timestamp < CACHE_TTL) {
-      setResults(cachedSearch.results);
+      setResults(cachedSearch.results as EnrichedRepo[]);
       setSuggestions(cachedSearch.suggestions);
       setTokensUsed(cachedSearch.tokensUsed);
       hasSearchedRef.current = true;

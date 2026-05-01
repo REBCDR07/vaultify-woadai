@@ -8,8 +8,10 @@ const Settings = () => {
     aiModel,
     totalTokensUsed,
     githubToken,
+    lewisApiKey,
     setAiModel,
     setGithubToken,
+    setLewisApiKey,
     favorites,
     searchHistory,
     clearSearchHistory,
@@ -19,10 +21,20 @@ const Settings = () => {
   const [showGhToken, setShowGhToken] = useState(false);
   const [ghSaved, setGhSaved] = useState(false);
 
+  const [lewisKey, setLewisKey] = useState(lewisApiKey);
+  const [showLewisKey, setShowLewisKey] = useState(false);
+  const [lewisSaved, setLewisSaved] = useState(false);
+
   const handleSaveGhToken = () => {
     setGithubToken(ghToken.trim());
     setGhSaved(true);
     setTimeout(() => setGhSaved(false), 2000);
+  };
+
+  const handleSaveLewisKey = () => {
+    setLewisApiKey(lewisKey.trim());
+    setLewisSaved(true);
+    setTimeout(() => setLewisSaved(false), 2000);
   };
 
   const handleExportAll = () => {
@@ -81,15 +93,46 @@ const Settings = () => {
               </select>
             </div>
 
-            <a
-              href="https://build.lewisnote.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              Documentation provider
-              <ExternalLink className="h-3 w-3" />
-            </a>
+            <div>
+              <label className="mb-1.5 block font-label text-xs text-muted-foreground">
+                Clé LewisNote (optionnel — BYOK)
+              </label>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Si renseignée, votre clé est utilisée en priorité. Sinon, les clés serveur prennent automatiquement le relais.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showLewisKey ? "text" : "password"}
+                    value={lewisKey}
+                    onChange={(e) => setLewisKey(e.target.value)}
+                    placeholder="sk-afri-..."
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    onClick={() => setShowLewisKey(!showLewisKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showLewisKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <button
+                  onClick={handleSaveLewisKey}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-label text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  {lewisSaved ? "✓" : "Sauver"}
+                </button>
+              </div>
+              <a
+                href="https://build.lewisnote.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Obtenir une clé LewisNote
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
 
             <div className="rounded-lg border border-border bg-card p-3">
               <div className="flex items-center justify-between">

@@ -46,6 +46,11 @@ interface VaultifyState {
   setAiModel: (model: string) => void;
   addTokens: (count: number) => void;
 
+  // Optional user-supplied LewisNote API key (BYOK).
+  // When empty, server-side keys are used by the ai-proxy edge function.
+  lewisApiKey: string;
+  setLewisApiKey: (key: string) => void;
+
   // GitHub token
   githubToken: string;
   setGithubToken: (token: string) => void;
@@ -79,11 +84,13 @@ export const useStore = create<VaultifyState>()(
     (set) => ({
       aiModel: DEFAULT_MODEL,
       totalTokensUsed: 0,
+      lewisApiKey: "",
       githubToken: "",
       cachedSearch: null,
 
       setAiModel: (model) => set({ aiModel: model }),
       addTokens: (count) => set((s) => ({ totalTokensUsed: s.totalTokensUsed + count })),
+      setLewisApiKey: (key) => set({ lewisApiKey: key }),
       setGithubToken: (token) => set({ githubToken: token }),
       setCachedSearch: (cache) => set({ cachedSearch: cache }),
 
