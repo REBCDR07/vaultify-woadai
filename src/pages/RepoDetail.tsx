@@ -43,7 +43,7 @@ const RepoDetail = () => {
 
         if (aiEnabled) {
           setAiLoading(true);
-          generateRepoDetail(undefined, aiModel, {
+          generateRepoDetail(lewisApiKey, aiModel, {
             full_name: data.full_name,
             description: data.description,
             readme: rm,

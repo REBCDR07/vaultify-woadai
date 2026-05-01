@@ -83,7 +83,7 @@ const Results = () => {
       if (aiEnabled && repos.length > 0) {
         try {
           const { results: scored, tokens } = await scoreAndSummarize(
-            undefined,
+            lewisApiKey,
             aiModel,
             q,
             repos.slice(0, 40)

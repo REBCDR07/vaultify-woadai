@@ -58,7 +58,7 @@ const DevProfile = () => {
 
         if (aiEnabled) {
           setAiLoading(true);
-          analyzeDevProfile(undefined, aiModel, userData, sorted.slice(0, 15))
+          analyzeDevProfile(lewisApiKey, aiModel, userData, sorted.slice(0, 15))
             .then(({ profile, tokens }) => {
               setAiProfile(profile);
               addTokens(tokens);
