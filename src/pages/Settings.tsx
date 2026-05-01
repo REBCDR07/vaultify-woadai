@@ -8,8 +8,10 @@ const Settings = () => {
     aiModel,
     totalTokensUsed,
     githubToken,
+    lewisApiKey,
     setAiModel,
     setGithubToken,
+    setLewisApiKey,
     favorites,
     searchHistory,
     clearSearchHistory,
@@ -19,10 +21,20 @@ const Settings = () => {
   const [showGhToken, setShowGhToken] = useState(false);
   const [ghSaved, setGhSaved] = useState(false);
 
+  const [lewisKey, setLewisKey] = useState(lewisApiKey);
+  const [showLewisKey, setShowLewisKey] = useState(false);
+  const [lewisSaved, setLewisSaved] = useState(false);
+
   const handleSaveGhToken = () => {
     setGithubToken(ghToken.trim());
     setGhSaved(true);
     setTimeout(() => setGhSaved(false), 2000);
+  };
+
+  const handleSaveLewisKey = () => {
+    setLewisApiKey(lewisKey.trim());
+    setLewisSaved(true);
+    setTimeout(() => setLewisSaved(false), 2000);
   };
 
   const handleExportAll = () => {
