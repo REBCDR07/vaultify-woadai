@@ -46,6 +46,11 @@ interface VaultifyState {
   setAiModel: (model: string) => void;
   addTokens: (count: number) => void;
 
+  // Optional user-supplied LewisNote API key (BYOK).
+  // When empty, server-side keys are used by the ai-proxy edge function.
+  lewisApiKey: string;
+  setLewisApiKey: (key: string) => void;
+
   // GitHub token
   githubToken: string;
   setGithubToken: (token: string) => void;
