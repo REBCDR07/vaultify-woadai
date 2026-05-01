@@ -1,103 +1,39 @@
-const REPO_ANALYSIS_MODEL = "gpt-5.3-codex";
+// Vaultify AI client — routes every call through the LewisNote ai-proxy
+// edge function. Server-side keys (LEWISNOTE_API_KEY_1..5) provide automatic
+// fallback. The user can optionally pass their own LewisNote key (BYOK).
 
-const API_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "https://build.lewisnote.com/v1";
-const ENV_API_KEYS = [
-  import.meta.env.VITE_AI_API_KEY,
-  import.meta.env.VITE_AI_API_KEY_2,
-  import.meta.env.VITE_AI_API_KEY_3,
-]
-  .map((key) => key?.trim() || "")
-  .filter(Boolean);
-
-interface AiMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
+import { callAI, safeParseJSON, type AIMessage } from "./aiProxy";
 
 interface ChatOptions {
   reasoningEffort?: "none" | "low" | "medium" | "high";
   webSearch?: boolean;
 }
 
-function getApiKey(overrideKey?: string): string {
-  const manual = overrideKey?.trim();
-  if (manual) return manual;
-  return ENV_API_KEYS[0] || "";
-}
-
-function getApiKeyCandidates(overrideKey?: string): string[] {
-  const manual = overrideKey?.trim();
-  if (!manual) return ENV_API_KEYS;
-  return [manual, ...ENV_API_KEYS.filter((key) => key !== manual)];
-}
-
-function shouldRetryWithNextKey(status: number): boolean {
-  return status === 401 || status === 403 || status === 429 || status >= 500;
-}
-
-export function isAiConfigured(overrideKey?: string): boolean {
-  return Boolean(getApiKey(overrideKey));
+// Always considered "configured" — the proxy has server keys.
+export function isAiConfigured(_overrideKey?: string): boolean {
+  return true;
 }
 
 export async function callAi(
   apiKey: string | undefined,
   model: string,
-  messages: AiMessage[],
-  options: ChatOptions = {}
+  messages: AIMessage[],
+  options: ChatOptions = {},
 ): Promise<{ content: string; tokens: number }> {
-  const keyCandidates = getApiKeyCandidates(apiKey);
-  if (keyCandidates.length === 0) {
-    throw new Error(
-      "Missing AI API key. Configure VITE_AI_API_KEY (and optionally VITE_AI_API_KEY_2 / VITE_AI_API_KEY_3)."
-    );
-  }
-
-  const body: Record<string, unknown> = {
+  const { content, tokens } = await callAI({
     model,
     messages,
-    stream: false,
     reasoning_effort: options.reasoningEffort ?? "medium",
     web_search: options.webSearch ?? false,
-  };
-
-  let lastError: string | null = null;
-
-  for (let i = 0; i < keyCandidates.length; i += 1) {
-    const key = keyCandidates[i];
-    const res = await fetch(`${API_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        content: data.choices?.[0]?.message?.content || "",
-        tokens: data.usage?.total_tokens || 0,
-      };
-    }
-
-    const err = await res.text();
-    lastError = `AI API error (${res.status}): ${err}`;
-
-    if (i < keyCandidates.length - 1 && shouldRetryWithNextKey(res.status)) {
-      continue;
-    }
-
-    throw new Error(lastError);
-  }
-
-  throw new Error(lastError || "AI API error: all configured keys failed.");
+    userKey: apiKey?.trim() || undefined,
+  });
+  return { content, tokens };
 }
 
 export async function reformulateQuery(
   apiKey: string | undefined,
   model: string,
-  query: string
+  query: string,
 ): Promise<{ queries: string[]; tokens: number }> {
   const { content, tokens } = await callAi(
     apiKey,
@@ -105,21 +41,19 @@ export async function reformulateQuery(
     [
       {
         role: "system",
-        content: `Tu es un expert en recherche GitHub.
-Genere exactement 4 requetes GitHub Search API optimisées pour couvrir des angles differents.
-Reponds UNIQUEMENT avec un JSON array de 4 strings.`,
+        content: `Tu es un expert en recherche GitHub. L'utilisateur décrit un besoin en langage naturel.
+Génère exactement 3 requêtes GitHub Search API optimisées couvrant différents angles sémantiques.
+Réponds UNIQUEMENT avec un JSON array de 3 strings. Exemple: ["q1","q2","q3"]`,
       },
       { role: "user", content: query },
     ],
-    { reasoningEffort: "medium", webSearch: false }
+    { reasoningEffort: "low", webSearch: true },
   );
-
-  try {
-    const parsed = JSON.parse(content);
-    return { queries: Array.isArray(parsed) ? parsed.slice(0, 4) : [query], tokens };
-  } catch {
-    return { queries: [query], tokens };
-  }
+  const parsed = safeParseJSON<string[]>(content, [query]);
+  return {
+    queries: Array.isArray(parsed) && parsed.length > 0 ? parsed.slice(0, 3) : [query],
+    tokens,
+  };
 }
 
 export async function scoreAndSummarize(
@@ -134,9 +68,15 @@ export async function scoreAndSummarize(
     topics: string[];
     updated_at: string;
     license?: { spdx_id: string };
-  }>
+  }>,
 ): Promise<{
-  results: Array<{ full_name: string; score: number; summary: string; useCases: string; strengths: string }>;
+  results: Array<{
+    full_name: string;
+    score: number;
+    summary: string;
+    useCases: string;
+    strengths: string;
+  }>;
   tokens: number;
 }> {
   const repoList = repos.map((r) => ({
@@ -155,37 +95,25 @@ export async function scoreAndSummarize(
     [
       {
         role: "system",
-        content: `Tu es un expert senior en evaluation de repositories GitHub.
-Retourne UNIQUEMENT un JSON array trie par pertinence decroissante (max 15).
-Schema de chaque element:
-{
-  "full_name": string,
-  "score": number (0-100),
-  "summary": string (3-4 phrases utiles, pas de markdown),
-  "useCases": string,
-  "strengths": string
-}`,
+        content: `Expert senior en évaluation de repos GitHub. Analyse chaque repo par rapport à la requête.
+Retourne un JSON array trié par pertinence décroissante (top 10 max). Chaque élément:
+{ "full_name": string, "score": number 0-100, "summary": string (3-4 phrases riches),
+  "useCases": string, "strengths": string }
+Réponds UNIQUEMENT avec le JSON array.`,
       },
-      {
-        role: "user",
-        content: `Requete: "${originalQuery}"\n\nRepos:\n${JSON.stringify(repoList)}`,
-      },
+      { role: "user", content: `Requête: "${originalQuery}"\n\nRepos:\n${JSON.stringify(repoList)}` },
     ],
-    { reasoningEffort: "high", webSearch: false }
+    { reasoningEffort: "medium" },
   );
 
-  try {
-    const parsed = JSON.parse(content);
-    return { results: Array.isArray(parsed) ? parsed : [], tokens };
-  } catch {
-    return { results: [], tokens };
-  }
+  const parsed = safeParseJSON<any[]>(content, []);
+  return { results: Array.isArray(parsed) ? parsed : [], tokens };
 }
 
 export async function generateSuggestions(
   apiKey: string | undefined,
   model: string,
-  originalQuery: string
+  originalQuery: string,
 ): Promise<{ suggestions: string[]; tokens: number }> {
   const { content, tokens } = await callAi(
     apiKey,
@@ -193,19 +121,15 @@ export async function generateSuggestions(
     [
       {
         role: "system",
-        content: "Genere 4 recherches connexes pertinentes. Reponds UNIQUEMENT avec un JSON array de 4 strings.",
+        content: `Génère 4 recherches connexes pertinentes basées sur la requête.
+Réponds UNIQUEMENT avec un JSON array de 4 strings courts.`,
       },
       { role: "user", content: originalQuery },
     ],
-    { reasoningEffort: "low", webSearch: true }
+    { reasoningEffort: "low" },
   );
-
-  try {
-    const parsed = JSON.parse(content);
-    return { suggestions: Array.isArray(parsed) ? parsed : [], tokens };
-  } catch {
-    return { suggestions: [], tokens };
-  }
+  const sug = safeParseJSON<string[]>(content, []);
+  return { suggestions: Array.isArray(sug) ? sug : [], tokens };
 }
 
 export async function analyzeDevProfile(
@@ -228,9 +152,15 @@ export async function analyzeDevProfile(
     forks_count: number;
     language: string;
     topics: string[];
-  }>
+  }>,
 ): Promise<{
-  profile: { summary: string; expertise: string; collaborationFit: string; projectSuggestions: string; ranking: string };
+  profile: {
+    summary: string;
+    expertise: string;
+    collaborationFit: string;
+    projectSuggestions: string;
+    ranking: string;
+  };
   tokens: number;
 }> {
   const repoSummary = repos.map((r) => ({
@@ -248,71 +178,78 @@ export async function analyzeDevProfile(
     [
       {
         role: "system",
-        content: `Analyse ce profil developpeur GitHub et retourne UNIQUEMENT un JSON:
-{
-  "summary": string,
-  "expertise": string,
-  "collaborationFit": string,
-  "projectSuggestions": string,
-  "ranking": string
-}`,
+        content: `Expert en analyse de profils dev GitHub. Analyse ce profil de fond en comble.
+Retourne un JSON: { "summary": string (paragraphe détaillé), "expertise": string,
+"collaborationFit": string, "projectSuggestions": string, "ranking": string (junior/mid/senior/expert + justif) }.
+Réponds UNIQUEMENT avec le JSON.`,
       },
       {
         role: "user",
-        content: `Profil: ${user.name || user.login}\nBio: ${user.bio || "N/A"}\nLocation: ${user.location || "N/A"}\nCompany: ${user.company || "N/A"}\nFollowers: ${user.followers}\nRepos publics: ${user.public_repos}\n\nTop repos:\n${JSON.stringify(repoSummary)}`,
+        content: `Profil: ${user.name || user.login}
+Bio: ${user.bio || "N/A"}
+Location: ${user.location || "N/A"}
+Company: ${user.company || "N/A"}
+Followers: ${user.followers}
+Repos publics: ${user.public_repos}
+
+Top repos:
+${JSON.stringify(repoSummary)}`,
       },
     ],
-    { reasoningEffort: "high", webSearch: false }
+    { reasoningEffort: "medium" },
   );
 
-  try {
-    return { profile: JSON.parse(content), tokens };
-  } catch {
-    return {
-      profile: { summary: "", expertise: "", collaborationFit: "", projectSuggestions: "", ranking: "" },
-      tokens,
-    };
-  }
+  const profile = safeParseJSON(content, {
+    summary: "",
+    expertise: "",
+    collaborationFit: "",
+    projectSuggestions: "",
+    ranking: "",
+  });
+  return { profile, tokens };
 }
 
 export async function generateRepoDetail(
   apiKey: string | undefined,
   model: string,
-  repoData: { full_name: string; description: string; readme?: string }
+  repoData: { full_name: string; description: string; readme?: string },
 ): Promise<{
-  detail: { description: string; useCases: string; compatibleStack: string; strengths: string; similar: string[] };
+  detail: {
+    description: string;
+    useCases: string;
+    compatibleStack: string;
+    strengths: string;
+    similar: string[];
+  };
   tokens: number;
 }> {
   const { content, tokens } = await callAi(
     apiKey,
-    REPO_ANALYSIS_MODEL === model ? model : REPO_ANALYSIS_MODEL,
+    model,
     [
       {
         role: "system",
-        content: `Analyse ce repository GitHub en detail.
-Retourne UNIQUEMENT un JSON:
-{
-  "description": string,
-  "useCases": string,
-  "compatibleStack": string,
-  "strengths": string,
-  "similar": string[]
-}`,
+        content: `Analyse ce repository GitHub en profondeur. Retourne JSON:
+{ "description": string (paragraphe riche), "useCases": string, "compatibleStack": string,
+  "strengths": string, "similar": string[] (5 noms de repos similaires) }
+Réponds UNIQUEMENT avec le JSON.`,
       },
       {
         role: "user",
-        content: `Repo: ${repoData.full_name}\nDescription: ${repoData.description}\nREADME (extrait): ${(repoData.readme || "").slice(0, 8000)}`,
+        content: `Repo: ${repoData.full_name}
+Description: ${repoData.description}
+README (extrait): ${(repoData.readme || "").slice(0, 3000)}`,
       },
     ],
-    { reasoningEffort: "high", webSearch: false }
+    { reasoningEffort: "medium", webSearch: true },
   );
 
-  try {
-    return { detail: JSON.parse(content), tokens };
-  } catch {
-    return {
-      detail: { description: repoData.description || "", useCases: "", compatibleStack: "", strengths: "", similar: [] },
-      tokens,
-    };
-  }
+  const detail = safeParseJSON(content, {
+    description: repoData.description || "",
+    useCases: "",
+    compatibleStack: "",
+    strengths: "",
+    similar: [] as string[],
+  });
+  return { detail, tokens };
 }
