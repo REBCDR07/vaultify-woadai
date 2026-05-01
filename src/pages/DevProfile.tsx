@@ -32,7 +32,7 @@ interface AiProfile {
 const DevProfile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { githubToken, aiModel, addTokens } = useStore();
+  const { githubToken, aiModel, lewisApiKey, addTokens } = useStore();
 
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);

@@ -24,6 +24,7 @@ const Results = () => {
   const query = searchParams.get("q") || "";
   const {
     aiModel,
+    lewisApiKey,
     githubToken,
     addTokens,
     addSearchLog,
