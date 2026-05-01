@@ -148,7 +148,7 @@ const Results = () => {
     if (!query) return;
 
     if (cachedSearch && cachedSearch.query === query && Date.now() - cachedSearch.timestamp < CACHE_TTL) {
-      setResults(cachedSearch.results);
+      setResults(cachedSearch.results as EnrichedRepo[]);
       setSuggestions(cachedSearch.suggestions);
       setTokensUsed(cachedSearch.tokensUsed);
       hasSearchedRef.current = true;
