@@ -41,8 +41,7 @@ Objectif produit:
 
 ## IA Intégrées
 
-- Base URL IA: `https://build.lewisnote.com/v1`
-- Endpoint principal: `POST /chat/completions`
+
 - Modèles disponibles:
   - `gpt-5.4-nano`
   - `gpt-5.4-mini`
@@ -81,28 +80,6 @@ Pour le module développeurs béninois:
 - Les profils sont agrégés, filtrés et analysés par IA.
 - Une fiche de profil détaillée est produite (expertise, fit collaboration, suggestions projet).
 
-## Configuration Environnement
-
-Créer `.env` à la racine:
-
-```env
-VITE_AI_BASE_URL=https://build.lewisnote.com/v1
-VITE_AI_API_KEY=sk-afri-xxxxxxxxxxxxxxxx
-VITE_AI_API_KEY_2=sk-afri-xxxxxxxxxxxxxxxx
-VITE_AI_API_KEY_3=sk-afri-xxxxxxxxxxxxxxxx
-
-VITE_AFRICHAT_SITE_KEY=afc_live_xxxxxxxxxxxx.yyyyyyyyyyyyyyyy
-VITE_AFRICHAT_CHAT_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-chat
-VITE_AFRICHAT_TTS_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-tts
-VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT=https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-realtime-token
-VITE_AFRICHAT_AUDIO_ENABLED=true
-```
-
-Règles d'usage:
-
-- Les utilisateurs ne saisissent plus de clé IA dans l'interface.
-- Seul le token GitHub est optionnel en configuration utilisateur.
-- Fallback automatique entre `VITE_AI_API_KEY`, `VITE_AI_API_KEY_2`, `VITE_AI_API_KEY_3` en cas de `401/403/429/5xx`.
 
 ### Widget Conversationnel (My AfriChat)
 
