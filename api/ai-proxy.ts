@@ -6,7 +6,7 @@ interface ProxyRequest {
   model: string;
   messages: Array<{ role: string; content: unknown }>;
   max_tokens?: number;
-  reasoning_effort?: "none" | "low" | "medium" | "high";
+  reasoning_effort?: "none" | "low" | "medium" | "high" | "xhigh";
   web_search?: boolean;
   stream?: boolean;
   response_format?: unknown;

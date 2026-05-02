@@ -1,6 +1,6 @@
 // AI client routed through deploy-time proxy endpoints.
 
-import { IMAGE_MODEL, IMAGE_PROMPT_MODEL } from "@/lib/constants";
+import { IMAGE_MODEL, IMAGE_PROMPT_MODEL, REPO_ANALYSIS_MODEL } from "@/lib/constants";
 
 const normalizeUrl = (value: string) => (value || "").trim().replace(/\/+$/, "");
 const isRelativeApiEndpoint = (value: string) => value.startsWith("/api/");
@@ -32,7 +32,7 @@ export interface AIMessage {
 }
 
 interface ChatOptions {
-  reasoningEffort?: "none" | "low" | "medium" | "high";
+  reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh";
   webSearch?: boolean;
 }
 
@@ -90,6 +90,15 @@ interface DevProfileAnalysis {
 function getEndpointCandidates(kind: "chat" | "image"): string[] {
   const endpoint = kind === "chat" ? chatEndpoint : imageEndpoint;
   return endpoint ? [endpoint] : [];
+}
+
+function resolveAnalysisModel(rawModel: string): string {
+  const candidate = (rawModel || "").trim();
+  return candidate === "gpt-5.3-codex" ? candidate : REPO_ANALYSIS_MODEL;
+}
+
+function resolveAnalysisReasoning(model: string): "high" | "xhigh" {
+  return model === "gpt-5.4-pro" ? "xhigh" : "high";
 }
 
 function extractTextValue(value: unknown): string {
@@ -353,9 +362,10 @@ export async function analyzeDevProfile(
     topics: r.topics,
   }));
 
+  const analysisModel = resolveAnalysisModel(model);
   const { content, tokens } = await callAi(
     apiKey,
-    model,
+    analysisModel,
     [
       {
         role: "system",
@@ -373,7 +383,7 @@ export async function analyzeDevProfile(
         content: `Profil: ${user.name || user.login}\nBio: ${user.bio || "N/A"}\nLocation: ${user.location || "N/A"}\nCompany: ${user.company || "N/A"}\nFollowers: ${user.followers}\nRepos publics: ${user.public_repos}\n\nTop repos:\n${JSON.stringify(repoSummary)}`,
       },
     ],
-    { reasoningEffort: "high", webSearch: false }
+    { reasoningEffort: resolveAnalysisReasoning(analysisModel), webSearch: false }
   );
 
   const profile = safeParseJSON<DevProfileAnalysis>(content, {
@@ -401,9 +411,10 @@ export async function generateRepoDetail(
   };
   tokens: number;
 }> {
+  const analysisModel = resolveAnalysisModel(model);
   const { content, tokens } = await callAi(
     apiKey,
-    model,
+    analysisModel,
     [
       {
         role: "system",
@@ -414,7 +425,7 @@ export async function generateRepoDetail(
         content: `Repo: ${repoData.full_name}\nDescription: ${repoData.description}\nREADME (extrait): ${(repoData.readme || "").slice(0, 4000)}`,
       },
     ],
-    { reasoningEffort: "medium", webSearch: true }
+    { reasoningEffort: resolveAnalysisReasoning(analysisModel), webSearch: true }
   );
 
   const detail = safeParseJSON<RepoDetailAnalysis>(content, {

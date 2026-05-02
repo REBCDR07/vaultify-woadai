@@ -23,7 +23,8 @@ const DEFAULT_REASONING = (getEnv("AFRICHAT_REASONING_EFFORT", "VITE_AFRICHAT_RE
   | "none"
   | "low"
   | "medium"
-  | "high";
+  | "high"
+  | "xhigh";
 
 function buildSystemPrompt(): string {
   const custom = getEnv("AFRICHAT_SYSTEM_PROMPT", "VITE_AFRICHAT_SYSTEM_PROMPT");
