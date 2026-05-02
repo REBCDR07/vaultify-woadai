@@ -28,7 +28,7 @@ const LAYOUT_OPTIONS = [
   { value: "square", label: "Carre", hint: "1:1" },
 ] as const;
 
-const IMAGE_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10] as const;
+const IMAGE_COUNT_OPTIONS = [3, 4, 5, 6] as const;
 
 type IllustrationLayout = (typeof LAYOUT_OPTIONS)[number]["value"];
 type IllustrationCount = (typeof IMAGE_COUNT_OPTIONS)[number];

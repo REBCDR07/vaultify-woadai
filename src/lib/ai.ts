@@ -451,7 +451,7 @@ function estimateIllustrationCount(
     score += 1;
   }
 
-  return clamp(score, 3, 10);
+  return clamp(score, 3, 6);
 }
 function buildFallbackIllustrationPrompts(
   repoData: { full_name: string; description: string; topics?: string[] },
@@ -505,7 +505,7 @@ export async function generateRepoIllustrationPlan(
   options: { maxImages?: number; layout?: "square" | "portrait" | "landscape" } = {}
 ): Promise<{ plan: RepoIllustrationPlan; tokens: number }> {
   const layout = options.layout || "landscape";
-  const maxImages = clamp(options.maxImages || 10, 3, 10);
+  const maxImages = clamp(options.maxImages || 6, 3, 6);
   const desiredCount = clamp(estimateIllustrationCount(repoData, repoData.readme || "", aiDetail), 3, maxImages);
 
   const { content, tokens } = await callAi(
@@ -575,7 +575,7 @@ export async function generateRepoIllustration(
         model: IMAGE_MODEL,
         prompt,
         size: layoutToSize(layout, options.size),
-        quality: options.quality || "high",
+        quality: options.quality || "medium",
         n: 1,
         background: options.background || "auto",
         output_format: outputFormat,
