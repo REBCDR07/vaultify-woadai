@@ -40,11 +40,11 @@ function buildSystemPrompt(): string {
   ].join(" ");
 }
 
-async function handle(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export async function OPTIONS() {
+  return new Response("ok", { headers: corsHeaders });
+}
 
+export async function POST(request: Request): Promise<Response> {
   const siteKeyError = assertSiteKey(request);
   if (siteKeyError) return siteKeyError;
 
@@ -73,10 +73,8 @@ async function handle(request: Request): Promise<Response> {
       };
     }
 
-    return await proxyJsonRequest("/chat/completions", payload, { stream: body.stream ?? true, signal: request.signal });
+    return await proxyJsonRequest("/chat/completions", payload, { stream: body.stream ?? true });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
-
-export default { fetch: handle };

@@ -12,11 +12,11 @@ interface ProxyRequest {
   response_format?: unknown;
 }
 
-async function handle(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export async function OPTIONS() {
+  return new Response("ok", { headers: corsHeaders });
+}
 
+export async function POST(request: Request): Promise<Response> {
   try {
     const body = (await request.json()) as ProxyRequest;
     const { model, messages, max_tokens = 4096, reasoning_effort, web_search, stream = false, response_format } = body;
@@ -36,10 +36,8 @@ async function handle(request: Request): Promise<Response> {
     if (web_search) payload.web_search = true;
     if (response_format) payload.response_format = response_format;
 
-    return await proxyJsonRequest("/chat/completions", payload, { stream, signal: request.signal });
+    return await proxyJsonRequest("/chat/completions", payload, { stream });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
-
-export default { fetch: handle };

@@ -8,11 +8,11 @@ interface TtsRequest {
   response_format?: string;
 }
 
-async function handle(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export async function OPTIONS() {
+  return new Response("ok", { headers: corsHeaders });
+}
 
+export async function POST(request: Request): Promise<Response> {
   const siteKeyError = assertSiteKey(request);
   if (siteKeyError) return siteKeyError;
 
@@ -47,7 +47,6 @@ async function handle(request: Request): Promise<Response> {
           voice: body.voice || getEnv("AFRICHAT_TTS_VOICE", "VITE_AFRICHAT_TTS_VOICE", "AI_TTS_VOICE", "VITE_AI_TTS_VOICE") || "alloy",
           response_format: body.response_format || "mp3",
         }),
-        signal: request.signal,
       });
 
       if (upstream.ok) {
@@ -64,5 +63,3 @@ async function handle(request: Request): Promise<Response> {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
-
-export default { fetch: handle };

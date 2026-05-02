@@ -35,7 +35,8 @@ export function rawResponse(
 const DEFAULT_AI_BASE_URL = "https://build.lewisnote.com/v1";
 
 function readEnv(name: string): string {
-  return (process.env[name] || "").trim();
+  const env = typeof process !== "undefined" ? process.env : undefined;
+  return (env?.[name] || "").trim();
 }
 
 export function getEnv(...names: string[]): string {

@@ -12,11 +12,11 @@ interface ImageRequest {
   output_format?: "png" | "jpg" | "webp";
 }
 
-async function handle(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export async function OPTIONS() {
+  return new Response("ok", { headers: corsHeaders });
+}
 
+export async function POST(request: Request): Promise<Response> {
   try {
     const body = (await request.json()) as ImageRequest;
     const { model, prompt, size = "1024x1024", quality = "medium", n = 1, background = "auto", output_format = "png" } = body;
@@ -25,22 +25,16 @@ async function handle(request: Request): Promise<Response> {
       return jsonResponse({ error: "model + prompt requis" }, 400);
     }
 
-    return await proxyJsonRequest(
-      "/images/generations",
-      {
-        model,
-        prompt,
-        size,
-        quality,
-        n,
-        background,
-        output_format,
-      },
-      { signal: request.signal }
-    );
+    return await proxyJsonRequest("/images/generations", {
+      model,
+      prompt,
+      size,
+      quality,
+      n,
+      background,
+      output_format,
+    });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
-
-export default { fetch: handle };

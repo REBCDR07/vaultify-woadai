@@ -2,11 +2,11 @@ import { assertSiteKey, corsHeaders, getEnv, jsonResponse } from "./_shared/prox
 
 export const maxDuration = 30;
 
-async function handle(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export async function OPTIONS() {
+  return new Response("ok", { headers: corsHeaders });
+}
 
+export async function POST(request: Request): Promise<Response> {
   const siteKeyError = assertSiteKey(request);
   if (siteKeyError) return siteKeyError;
 
@@ -17,5 +17,3 @@ async function handle(request: Request): Promise<Response> {
 
   return jsonResponse({ token });
 }
-
-export default { fetch: handle };
