@@ -2,9 +2,29 @@
 
 import { IMAGE_MODEL, IMAGE_PROMPT_MODEL } from "@/lib/constants";
 const normalizeUrl = (value: string) => (value || "").trim().replace(/\/+$/, "");
+const isLegacySupabaseUrl = (value: string) => /supabase\.co/i.test(value);
+
+const resolveEndpoint = (explicitValue: string | undefined, baseUrl: string, path: string) => {
+  const explicit = normalizeUrl(explicitValue || "");
+  if (explicit) {
+    if (import.meta.env.PROD && isLegacySupabaseUrl(explicit)) return `/api/${path}`;
+    return explicit;
+  }
+
+  const base = normalizeUrl(baseUrl || "");
+  if (base) {
+    if (isLegacySupabaseUrl(base)) {
+      return import.meta.env.PROD ? `/api/${path}` : `${base}/functions/v1/${path}`;
+    }
+    return `${base}/${path}`;
+  }
+
+  return `/api/${path}`;
+};
+
 const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
-const chatEndpoint = normalizeUrl(import.meta.env.VITE_AI_CHAT_ENDPOINT || "") || (apiBaseUrl ? `${apiBaseUrl}/ai-proxy` : "/api/ai-proxy");
-const imageEndpoint = normalizeUrl(import.meta.env.VITE_AI_IMAGE_ENDPOINT || "") || (apiBaseUrl ? `${apiBaseUrl}/image-proxy` : "/api/image-proxy");
+const chatEndpoint = resolveEndpoint(import.meta.env.VITE_AI_CHAT_ENDPOINT, apiBaseUrl, "ai-proxy");
+const imageEndpoint = resolveEndpoint(import.meta.env.VITE_AI_IMAGE_ENDPOINT, apiBaseUrl, "image-proxy");
 
 export interface AIMessage {
   role: "system" | "user" | "assistant";

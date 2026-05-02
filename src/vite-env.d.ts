@@ -8,7 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_AFRICHAT_CHAT_ENDPOINT?: string;
   readonly VITE_AFRICHAT_TTS_ENDPOINT?: string;
   readonly VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT?: string;
-  readonly VITE_AFRICHAT_AUDIO_ENABLED?: string;
 }
 
 interface ImportMeta {

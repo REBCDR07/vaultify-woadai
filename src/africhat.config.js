@@ -1,20 +1,22 @@
-const parseEnvBoolean = (value, fallback = true) => {
-  if (typeof value !== "string") return fallback;
-
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return fallback;
-
-  return !["0", "false", "no", "off"].includes(normalized);
-};
-
 const normalizeUrl = (value) => (value || "").trim().replace(/\/+$/, "");
+const isLegacySupabaseUrl = (value) => /supabase\.co/i.test(value);
 const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
 const defaultSiteKey = (import.meta.env.VITE_AFRICHAT_SITE_KEY || "").trim();
 
 const resolveEndpoint = (explicitValue, path) => {
   const explicit = normalizeUrl(explicitValue || "");
-  if (explicit) return explicit;
-  if (apiBaseUrl) return `${apiBaseUrl}/${path}`;
+  if (explicit) {
+    if (import.meta.env.PROD && isLegacySupabaseUrl(explicit)) return `/api/${path}`;
+    return explicit;
+  }
+
+  if (apiBaseUrl) {
+    if (isLegacySupabaseUrl(apiBaseUrl)) {
+      return import.meta.env.PROD ? `/api/${path}` : `${apiBaseUrl}/functions/v1/${path}`;
+    }
+    return `${apiBaseUrl}/${path}`;
+  }
+
   return `/api/${path}`;
 };
 
@@ -141,7 +143,7 @@ const afriChatConfig = {
     voice: "alloy",
     persona: "Conseiller produit Vaultify",
     web_search: false,
-    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, true),
+    audioEnabled: true,
     multilingual: true,
   },
   integration: {

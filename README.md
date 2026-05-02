@@ -51,9 +51,9 @@ Role des couches IA:
 - Suggestions: propositions de recherches connexes.
 - Analyse detaillee repo: synthese approfondie avec focus technique.
 - Illustration repo: GPT-5.4 genere un plan de prompts, GPT Image 2 produit un carrousel paysage 8k ultra de 3 a 10 images.
-- Assistant conversationnel: widget My AfriChat branche via proxy Supabase.
+- Assistant conversationnel: widget My AfriChat branche via routes API Vercel.
 
-Les appels IA passent par des fonctions Supabase deployees. Aucun secret n'est demande aux utilisateurs.
+Les appels IA passent par des routes API Vercel deployees. Aucun secret n'est demande aux utilisateurs.
 
 ## Flux produit
 
@@ -72,7 +72,7 @@ Les appels IA passent par des fonctions Supabase deployees. Aucun secret n'est d
 - Montage automatique dans `src/main.tsx`
 - Configuration centralisee: `src/africhat.config.js`
 - Endpoints deployes: `widget-chat`, `widget-tts`, `widget-realtime-token`
-- Audio desactive par defaut; activer `VITE_AFRICHAT_AUDIO_ENABLED=true` seulement si le flux TTS est configure.
+- Audio active par defaut; le bouton permet de couper/rallumer le son, et le replay utilise le TTS quand il est configure.
 
 ## Demarrage
 
@@ -98,13 +98,13 @@ npm run test
 - `src/pages/RepoDetail.tsx` : analyse detaillee d'un repository et illustrations IA.
 - `src/pages/DevProfile.tsx` : analyse de profil developpeur.
 - `src/pages/BeninDevs.tsx` : exploration des developpeurs beninois.
-- `src/lib/ai.ts` : client IA via proxy Supabase + images GPT Image 2.
+- `src/lib/ai.ts` : client IA via routes API Vercel + images GPT Image 2.
 - `src/lib/github.ts` : couche API GitHub.
-- `supabase/functions/ai-proxy/index.ts` : proxy chat texte.
-- `supabase/functions/image-proxy/index.ts` : proxy generation d'images.
-- `supabase/functions/widget-chat/index.ts` : proxy du widget AfriChat.
-- `supabase/functions/widget-tts/index.ts` : proxy TTS si l'audio est active.
-- `supabase/functions/widget-realtime-token/index.ts` : jeton realtime optionnel.
+- `api/ai-proxy.ts` : proxy chat texte.
+- `api/image-proxy.ts` : proxy generation d'images.
+- `api/widget-chat.ts` : proxy du widget AfriChat.
+- `api/widget-tts.ts` : proxy TTS si l'audio est active.
+- `api/widget-realtime-token.ts` : jeton realtime optionnel.
 
 ## Transparence et limites
 
@@ -126,15 +126,12 @@ npm run test
 
 Cote frontend:
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_AFRICHAT_SITE_KEY`
-- `VITE_AFRICHAT_CHAT_ENDPOINT` (optionnel)
-- `VITE_AFRICHAT_TTS_ENDPOINT` (optionnel)
-- `VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT` (optionnel)
-- `VITE_AFRICHAT_AUDIO_ENABLED` (optionnel)
+- `VITE_AFRICHAT_CHAT_ENDPOINT` (optionnel, sinon `/api/widget-chat`)
+- `VITE_AFRICHAT_TTS_ENDPOINT` (optionnel, sinon `/api/widget-tts`)
+- `VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT` (optionnel, sinon `/api/widget-realtime-token`)
 
-Cote Supabase / proxy:
+Cote serveur / Vercel:
 
 - `AI_BASE_URL`
 - `AI_API_KEY_1` a `AI_API_KEY_5`
