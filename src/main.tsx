@@ -37,7 +37,9 @@ if ("serviceWorker" in navigator && shouldRegisterServiceWorker) {
                 payload: parsed.state?.favorites || [],
               });
             }
-          } catch {}
+          } catch (error) {
+            void error;
+          }
         };
 
         // Cache on load and on storage changes

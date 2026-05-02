@@ -1,28 +1,36 @@
-// LewisNote models — served via the ai-proxy edge function.
-// User-provided keys are optional; server keys provide automatic fallback.
+// AI models served through the proxy layer.
 
 export const AI_MODELS = [
   {
     id: "gpt-5.5",
     name: "GPT-5.5",
     speed: "Très rapide",
+    badge: "Recherche",
+    supportsWebSearch: true,
+    supportsReasoning: true,
+  },
+  {
+    id: "gpt-5.4-mini",
+    name: "GPT-5.4 Mini",
+    speed: "Équilibré",
     badge: "Recommandé",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
   {
     id: "gpt-5.4",
-    name: "GPT-5.4 Thinking",
-    speed: "Reasoning profond",
-    badge: "Reasoning",
+    name: "GPT-5.4",
+    speed: "Créatif",
+    badge: "Illustration",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
 ] as const;
 
-// Backward compat (some files still import GROQ_MODELS / DEFAULT_MODEL)
-export const GROQ_MODELS = AI_MODELS;
-export const DEFAULT_MODEL = "gpt-5.5";
+export const DEFAULT_MODEL = "gpt-5.4-mini";
+export const REPO_ANALYSIS_MODEL = "gpt-5.5";
+export const IMAGE_PROMPT_MODEL = "gpt-5.4";
+export const IMAGE_MODEL = "gpt-image-2";
 
 export const CATEGORIES = [
   { label: "UI Components", query: "UI component library" },

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { DEFAULT_MODEL } from "@/lib/constants";
+import { AI_MODELS, DEFAULT_MODEL } from "@/lib/constants";
+
+const isSupportedModel = (model: string) => AI_MODELS.some((item) => item.id === model);
 
 export interface SavedRepo {
   id: string;
@@ -40,26 +42,17 @@ export interface CachedSearchResult {
 }
 
 interface VaultifyState {
-  // AI config
   aiModel: string;
   totalTokensUsed: number;
   setAiModel: (model: string) => void;
   addTokens: (count: number) => void;
 
-  // Optional user-supplied LewisNote API key (BYOK).
-  // When empty, server-side keys are used by the ai-proxy edge function.
-  lewisApiKey: string;
-  setLewisApiKey: (key: string) => void;
-
-  // GitHub token
   githubToken: string;
   setGithubToken: (token: string) => void;
 
-  // Search cache
   cachedSearch: CachedSearchResult | null;
   setCachedSearch: (cache: CachedSearchResult | null) => void;
 
-  // Favorites
   favorites: SavedRepo[];
   addFavorite: (repo: SavedRepo) => void;
   removeFavorite: (fullName: string) => void;
@@ -67,13 +60,11 @@ interface VaultifyState {
   updateFavoriteTags: (fullName: string, tags: string[]) => void;
   moveFavoriteToCollection: (fullName: string, collectionId: string) => void;
 
-  // Collections
   collections: Collection[];
   addCollection: (col: Collection) => void;
   removeCollection: (id: string) => void;
   updateCollection: (id: string, updates: Partial<Collection>) => void;
 
-  // Search history
   searchHistory: SearchLogEntry[];
   addSearchLog: (entry: SearchLogEntry) => void;
   clearSearchHistory: () => void;
@@ -84,43 +75,32 @@ export const useStore = create<VaultifyState>()(
     (set) => ({
       aiModel: DEFAULT_MODEL,
       totalTokensUsed: 0,
-      lewisApiKey: "",
       githubToken: "",
       cachedSearch: null,
 
-      setAiModel: (model) => set({ aiModel: model }),
+      setAiModel: (model) => set({ aiModel: isSupportedModel(model) ? model : DEFAULT_MODEL }),
       addTokens: (count) => set((s) => ({ totalTokensUsed: s.totalTokensUsed + count })),
-      setLewisApiKey: (key) => set({ lewisApiKey: key }),
       setGithubToken: (token) => set({ githubToken: token }),
       setCachedSearch: (cache) => set({ cachedSearch: cache }),
 
       favorites: [],
       addFavorite: (repo) =>
         set((s) => ({
-          favorites: s.favorites.some((f) => f.full_name === repo.full_name)
-            ? s.favorites
-            : [...s.favorites, repo],
+          favorites: s.favorites.some((f) => f.full_name === repo.full_name) ? s.favorites : [...s.favorites, repo],
         })),
-      removeFavorite: (fullName) =>
-        set((s) => ({ favorites: s.favorites.filter((f) => f.full_name !== fullName) })),
+      removeFavorite: (fullName) => set((s) => ({ favorites: s.favorites.filter((f) => f.full_name !== fullName) })),
       updateFavoriteNote: (fullName, note) =>
         set((s) => ({
-          favorites: s.favorites.map((f) =>
-            f.full_name === fullName ? { ...f, personal_note: note } : f
-          ),
+          favorites: s.favorites.map((f) => (f.full_name === fullName ? { ...f, personal_note: note } : f)),
         })),
       updateFavoriteTags: (fullName, tags) =>
         set((s) => ({
-          favorites: s.favorites.map((f) =>
-            f.full_name === fullName ? { ...f, tags } : f
-          ),
+          favorites: s.favorites.map((f) => (f.full_name === fullName ? { ...f, tags } : f)),
         })),
       moveFavoriteToCollection: (fullName, collectionId) =>
         set((s) => ({
           favorites: s.favorites.map((f) =>
-            f.full_name === fullName
-              ? { ...f, collection_ids: [...new Set([...f.collection_ids, collectionId])] }
-              : f
+            f.full_name === fullName ? { ...f, collection_ids: [...new Set([...f.collection_ids, collectionId])] } : f
           ),
         })),
 
@@ -129,23 +109,28 @@ export const useStore = create<VaultifyState>()(
       removeCollection: (id) =>
         set((s) => ({
           collections: s.collections.filter((c) => c.id !== id),
-          favorites: s.favorites.map((f) => ({
-            ...f,
-            collection_ids: f.collection_ids.filter((cid) => cid !== id),
-          })),
+          favorites: s.favorites.map((f) => ({ ...f, collection_ids: f.collection_ids.filter((cid) => cid !== id) })),
         })),
-      updateCollection: (id, updates) =>
-        set((s) => ({
-          collections: s.collections.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-        })),
+      updateCollection: (id, updates) => set((s) => ({ collections: s.collections.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
 
       searchHistory: [],
-      addSearchLog: (entry) =>
-        set((s) => ({
-          searchHistory: [entry, ...s.searchHistory].slice(0, 20),
-        })),
+      addSearchLog: (entry) => set((s) => ({ searchHistory: [entry, ...s.searchHistory].slice(0, 20) })),
       clearSearchHistory: () => set({ searchHistory: [] }),
     }),
-    { name: "vaultify-storage" }
+    {
+      name: "vaultify-storage",
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState || {}) as Partial<VaultifyState>;
+
+        return {
+          ...currentState,
+          ...persisted,
+          aiModel:
+            typeof persisted.aiModel === "string" && isSupportedModel(persisted.aiModel)
+              ? persisted.aiModel
+              : DEFAULT_MODEL,
+        };
+      },
+    }
   )
 );

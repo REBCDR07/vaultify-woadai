@@ -1,5 +1,10 @@
+import type { MyAfriChatConfig } from "my-africhat";
+
 declare module "*.config.js" {
-  const config: any;
+  type VaultifyAfriChatConfig = MyAfriChatConfig & {
+    knowledgeBase?: Record<string, unknown>;
+  };
+
+  const config: VaultifyAfriChatConfig;
   export default config;
 }
-

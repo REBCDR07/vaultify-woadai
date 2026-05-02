@@ -1,16 +1,68 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { getRepoDetails, getRepoReadme, type GitHubRepo } from "@/lib/github";
-import { generateRepoDetail } from "@/lib/ai";
+import { generateRepoDetail, generateRepoIllustrations } from "@/lib/ai";
 import { useStore } from "@/store/useStore";
 import SaveModal from "@/components/favorites/SaveModal";
 import MarkdownReadme from "@/components/results/MarkdownReadme";
-import { Star, GitFork, Eye, AlertCircle, ExternalLink, Bookmark, ArrowLeft, Zap } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import {
+  Star,
+  GitFork,
+  Eye,
+  AlertCircle,
+  ExternalLink,
+  Bookmark,
+  ArrowLeft,
+  Zap,
+  Loader2,
+  Sparkles,
+  Image as ImageIcon,
+  Download,
+} from "lucide-react";
+
+const LAYOUT_OPTIONS = [
+  { value: "landscape", label: "Paysage", hint: "3:2" },
+  { value: "portrait", label: "Portrait", hint: "2:3" },
+  { value: "square", label: "Carre", hint: "1:1" },
+] as const;
+
+const IMAGE_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10] as const;
+
+type IllustrationLayout = (typeof LAYOUT_OPTIONS)[number]["value"];
+type IllustrationCount = (typeof IMAGE_COUNT_OPTIONS)[number];
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "repo";
+}
+
+function getAspectClass(layout: IllustrationLayout): string {
+  if (layout === "portrait") return "aspect-[2/3]";
+  if (layout === "square") return "aspect-square";
+  return "aspect-[3/2]";
+}
+
+async function downloadImage(url: string, filename: string): Promise<void> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Image introuvable");
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
 
 const RepoDetail = () => {
   const { owner, repo: repoName } = useParams();
   const navigate = useNavigate();
-  const { aiModel, lewisApiKey, githubToken, addTokens, favorites } = useStore();
+  const { aiModel, githubToken, addTokens, favorites } = useStore();
 
   const [repoData, setRepoData] = useState<GitHubRepo | null>(null);
   const [readme, setReadme] = useState("");
@@ -24,6 +76,12 @@ const RepoDetail = () => {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [showSave, setShowSave] = useState(false);
+  const [illustrationLoading, setIllustrationLoading] = useState(false);
+  const [illustrationError, setIllustrationError] = useState("");
+  const [illustrationPlan, setIllustrationPlan] = useState<{ title: string; style: string; imageCount: number; characterDescription?: string } | null>(null);
+  const [illustrations, setIllustrations] = useState<string[]>([]);
+  const [illustrationLayout, setIllustrationLayout] = useState<IllustrationLayout>("landscape");
+  const [illustrationMaxImages, setIllustrationMaxImages] = useState<IllustrationCount>(6);
 
   const isSaved = favorites.some((f) => f.full_name === `${owner}/${repoName}`);
   const aiEnabled = true;
@@ -31,11 +89,12 @@ const RepoDetail = () => {
   useEffect(() => {
     if (!owner || !repoName) return;
     setLoading(true);
+    setAiDetail(null);
+    setIllustrationPlan(null);
+    setIllustrations([]);
+    setIllustrationError("");
 
-    Promise.all([
-      getRepoDetails(owner, repoName, githubToken || undefined),
-      getRepoReadme(owner, repoName, githubToken || undefined),
-    ])
+    Promise.all([getRepoDetails(owner, repoName, githubToken || undefined), getRepoReadme(owner, repoName, githubToken || undefined)])
       .then(([data, rm]) => {
         setRepoData(data);
         setReadme(rm);
@@ -43,7 +102,7 @@ const RepoDetail = () => {
 
         if (aiEnabled) {
           setAiLoading(true);
-          generateRepoDetail(lewisApiKey, aiModel, {
+          generateRepoDetail(undefined, aiModel, {
             full_name: data.full_name,
             description: data.description,
             readme: rm,
@@ -59,6 +118,44 @@ const RepoDetail = () => {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [owner, repoName, githubToken, aiModel, aiEnabled, addTokens]);
+
+  const handleIllustrateRepo = async () => {
+    if (!repoData) return;
+
+    setIllustrationLoading(true);
+    setIllustrationError("");
+    setIllustrations([]);
+    setIllustrationPlan(null);
+
+    try {
+      const { plan, images, tokens } = await generateRepoIllustrations(
+        undefined,
+        {
+          full_name: repoData.full_name,
+          description: repoData.description,
+          readme,
+          topics: repoData.topics || [],
+          stargazers_count: repoData.stargazers_count,
+          forks_count: repoData.forks_count,
+        },
+        aiDetail || undefined,
+        {
+          layout: illustrationLayout,
+          maxImages: illustrationMaxImages,
+          quality: "high",
+        }
+      );
+
+      setIllustrationPlan(plan);
+      setIllustrations(images);
+      if (tokens > 0) addTokens(tokens);
+    } catch (error) {
+      console.error(error);
+      setIllustrationError("Impossible de generer les illustrations pour ce repository.");
+    } finally {
+      setIllustrationLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -81,12 +178,14 @@ const RepoDetail = () => {
     );
   }
 
+  const repoSlug = slugify(repoData.full_name);
+
   return (
     <div className="container px-4 py-6">
       <div className="mx-auto max-w-3xl">
         <button
           onClick={() => navigate(-1)}
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour
@@ -95,11 +194,11 @@ const RepoDetail = () => {
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground break-all">{repoData.full_name}</h1>
+              <h1 className="break-all text-xl font-bold text-foreground sm:text-2xl">{repoData.full_name}</h1>
               <p className="mt-1 text-sm text-muted-foreground">{repoData.description}</p>
             </div>
 
-            <div className="flex w-full sm:w-auto items-center gap-2 sm:shrink-0">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
               <button
                 onClick={() => setShowSave(true)}
                 className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
@@ -114,7 +213,7 @@ const RepoDetail = () => {
                 href={repoData.html_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-label text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-label text-primary-foreground transition-colors hover:bg-primary/90 sm:flex-none"
               >
                 GitHub
                 <ExternalLink className="h-4 w-4" />
@@ -135,7 +234,7 @@ const RepoDetail = () => {
                 <button
                   key={t}
                   onClick={() => navigate(`/results?q=${encodeURIComponent(t)}`)}
-                  className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-label text-primary hover:bg-primary/20 transition-colors"
+                  className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-label text-primary transition-colors hover:bg-primary/20"
                 >
                   {t}
                 </button>
@@ -156,40 +255,168 @@ const RepoDetail = () => {
         {aiDetail && (
           <div className="mt-4 space-y-4">
             <div className="rounded-xl border border-primary/20 bg-card p-4 sm:p-5">
-              <h2 className="flex items-center gap-2 font-label text-sm font-medium text-primary">
-                <Zap className="h-4 w-4" />
-                Analyse IA
-              </h2>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <h2 className="flex items-center gap-2 font-label text-sm font-medium text-primary">
+                  <Zap className="h-4 w-4" />
+                  Analyse IA
+                </h2>
+                <Button onClick={handleIllustrateRepo} disabled={illustrationLoading} size="sm" className="inline-flex gap-2 self-start">
+                  {illustrationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                  Illustrer ce repository
+                </Button>
+              </div>
+
               <p className="mt-3 text-sm leading-relaxed text-foreground">{aiDetail.description}</p>
               {aiDetail.useCases && (
                 <div className="mt-3">
-                  <h3 className="font-label text-xs text-muted-foreground uppercase">Cas d'usage</h3>
+                  <h3 className="font-label text-xs uppercase text-muted-foreground">Cas d'usage</h3>
                   <p className="mt-1 text-sm text-foreground">{aiDetail.useCases}</p>
                 </div>
               )}
               {aiDetail.compatibleStack && (
                 <div className="mt-3">
-                  <h3 className="font-label text-xs text-muted-foreground uppercase">Stack compatible</h3>
+                  <h3 className="font-label text-xs uppercase text-muted-foreground">Stack compatible</h3>
                   <p className="mt-1 text-sm text-foreground">{aiDetail.compatibleStack}</p>
                 </div>
               )}
               {aiDetail.strengths && (
                 <div className="mt-3">
-                  <h3 className="font-label text-xs text-muted-foreground uppercase">Points forts</h3>
+                  <h3 className="font-label text-xs uppercase text-muted-foreground">Points forts</h3>
                   <p className="mt-1 text-sm text-foreground">{aiDetail.strengths}</p>
                 </div>
               )}
+
+              <div className="mt-4 rounded-lg border border-border bg-background/60 p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-label text-xs uppercase tracking-wider text-muted-foreground">Parametres illustration</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      GPT-5.4 prepare le brief, GPT Image 2 genere le carrousel en 8K ultra.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {LAYOUT_OPTIONS.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={illustrationLayout === option.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIllustrationLayout(option.value)}
+                        className="h-8 gap-1.5"
+                      >
+                        {option.label}
+                        <span className="text-[10px] opacity-70">{option.hint}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {IMAGE_COUNT_OPTIONS.map((count) => (
+                    <Button
+                      key={count}
+                      type="button"
+                      variant={illustrationMaxImages === count ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIllustrationMaxImages(count)}
+                      className="h-8 w-10 px-0"
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {illustrationLoading && (
+              <div className="rounded-xl border border-primary/20 bg-card p-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                  <span className="font-label text-xs">Generation des illustrations GPT Image 2...</span>
+                </div>
+              </div>
+            )}
+
+            {illustrationError && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                {illustrationError}
+              </div>
+            )}
+
+            {illustrations.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h3 className="font-label text-sm font-medium text-foreground">Illustrations IA</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {illustrationPlan?.title || repoData.full_name} · {illustrationPlan?.style || `${illustrationLayout} 8K ultra`}
+                    </p>
+                    {illustrationPlan?.characterDescription && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Personnage 3D: {illustrationPlan.characterDescription}
+                      </p>
+                    )}
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-label text-primary">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {illustrations.length} image{illustrations.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {illustrations.map((src, index) => (
+                      <CarouselItem key={`${src}-${index}`} className="basis-full">
+                        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+                          <div className={`relative ${getAspectClass(illustrationLayout)} w-full overflow-hidden`}>
+                            <img
+                              src={src}
+                              alt={`${repoData.full_name} illustration ${index + 1}`}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-background/90 via-background/40 to-transparent p-3">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                                  Slide {index + 1} / {illustrations.length}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Carrousel GPT Image 2</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 gap-1.5"
+                                onClick={() => downloadImage(src, `${repoSlug}-slide-${index + 1}.png`)}
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Télécharger
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  {illustrations.length > 1 && (
+                    <>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </>
+                  )}
+                </Carousel>
+              </div>
+            )}
 
             {aiDetail.similar && aiDetail.similar.length > 0 && (
               <div>
-                <h3 className="mb-2 font-label text-xs text-muted-foreground uppercase">Repos similaires</h3>
+                <h3 className="mb-2 font-label text-xs uppercase text-muted-foreground">Repos similaires</h3>
                 <div className="flex flex-wrap gap-2">
                   {aiDetail.similar.map((s) => (
                     <button
                       key={s}
                       onClick={() => navigate(`/results?q=${encodeURIComponent(s)}`)}
-                      className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                      className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
                     >
                       {s}
                     </button>
@@ -202,7 +429,7 @@ const RepoDetail = () => {
 
         {readme && (
           <div className="mt-6">
-            <h2 className="mb-3 font-label text-sm font-medium text-muted-foreground uppercase">README</h2>
+            <h2 className="mb-3 font-label text-sm font-medium uppercase text-muted-foreground">README</h2>
             <MarkdownReadme content={readme} />
           </div>
         )}
@@ -230,7 +457,7 @@ const Stat = ({ icon, value, label }: { icon: React.ReactNode; value: string; la
   <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
     {icon}
     <div className="min-w-0">
-      <span className="block text-sm font-semibold text-foreground truncate">{value}</span>
+      <span className="block truncate text-sm font-semibold text-foreground">{value}</span>
       <span className="block text-[11px] text-muted-foreground">{label}</span>
     </div>
   </div>

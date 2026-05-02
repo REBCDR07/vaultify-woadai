@@ -7,6 +7,15 @@ const parseEnvBoolean = (value, fallback = true) => {
   return !["0", "false", "no", "off"].includes(normalized);
 };
 
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+const defaultChatEndpoint =
+  import.meta.env.VITE_AFRICHAT_CHAT_ENDPOINT || (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-chat` : "");
+const defaultTtsEndpoint =
+  import.meta.env.VITE_AFRICHAT_TTS_ENDPOINT || (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-tts` : "");
+const defaultRealtimeTokenEndpoint =
+  import.meta.env.VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT ||
+  (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-realtime-token` : "");
+
 const creatorProfile = {
   name: "Elton Ronald Bill Hounnou",
   role: "Developpeur Frontend",
@@ -23,18 +32,18 @@ const featureHighlights = [
   "Analyse de profils developpeurs GitHub",
   "Exploration specialisee des developpeurs beninois",
   "Favoris, tags, notes, collections et exports JSON/Markdown",
-  "Assistant conversationnel My AfriChat avec audio TTS",
+  "Assistant conversationnel My AfriChat branche via proxy Supabase",
+  "Illustration GPT Image 2 des repositories publics en carrousel",
 ];
 
 const aiIntegration = {
-  provider: "build.lewisnote.com/v1",
-  endpoint: "POST /chat/completions",
-  models: ["gpt-5.4-nano", "gpt-5.4-mini", "gpt-5.4", "gpt-5.3-codex"],
+  models: ["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-image-2"],
   enabledParameters: ["reasoning_effort", "web_search", "stream=false"],
   layers: [
-    "Reformulation de requete utilisateur en plusieurs requetes GitHub complementaires",
+    "Reformulation de requete utilisateur en plusieurs requetes GitHub complementaires avec web search",
     "Scoring de pertinence (0-100) et synthese de chaque repository",
     "Generation de suggestions de recherches",
+    "Generation de carrousels d'images pour les repositories publics",
     "Analyse detaillee des repositories",
     "Analyse de profils developpeurs",
   ],
@@ -50,7 +59,7 @@ const workflow = [
   {
     step: "02",
     title: "Reformulation IA",
-    detail: "L'IA produit plusieurs requetes GitHub pour couvrir differents angles de recherche.",
+    detail: "L'IA produit 4 requetes GitHub et active la recherche web pour couvrir differents angles.",
   },
   {
     step: "03",
@@ -80,7 +89,7 @@ const trustAndLimits = [
   "Le token GitHub est optionnel: sans token l'app fonctionne, avec token les quotas API augmentent.",
   "Les recommandations IA sont une aide a la decision et non une garantie absolue.",
   "Toujours verifier README, licence, activite recente et qualite du projet avant adoption.",
-  "Les variables VITE_* sont cote frontend et ne conviennent pas aux secrets stricts.",
+  "Les secrets et endpoints sont configures au deploiement, pas par les utilisateurs.",
 ];
 
 const visitorFaq = [
@@ -90,12 +99,11 @@ const visitorFaq = [
   },
   {
     question: "Faut-il une cle API pour utiliser Vaultify ?",
-    answer:
-      "Non. Les fonctionnalites IA sont preconfigurees. Seul un token GitHub est optionnel pour augmenter les quotas API.",
+    answer: "Non. Les modeles et les endpoints sont configures au deploiement. Aucun secret n'est demande aux utilisateurs.",
   },
   {
     question: "Quels modeles IA sont disponibles ?",
-    answer: "GPT-5.4 Nano, GPT-5.4 Mini, GPT-5.4 et GPT-5.3 Codex.",
+    answer: "GPT-5.5, GPT-5.4 Mini, GPT-5.4 et GPT Image 2.",
   },
   {
     question: "Comment Vaultify classe les repositories ?",
@@ -124,14 +132,14 @@ const afriChatConfig = {
     iconPreset: "afri-bronze",
     iconSize: "medium",
     welcomeMessage:
-      "Bonjour, je suis l'assistant Vaultify. Je peux expliquer les fonctionnalites, les IA integrees, le fonctionnement de la plateforme et presenter son createur.",
+      "Bonjour, je suis l'assistant Vaultify. Je peux expliquer les fonctionnalites, les modeles IA, le fonctionnement de la plateforme et presenter son createur.",
   },
   assistant: {
     tone: "friendly",
     voice: "nova",
     persona:
       "Conseiller produit Vaultify. Reponses claires, factuelles, actionnables, centrees sur les fonctionnalites reelles de la plateforme.",
-    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, true),
+    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, false),
     multilingual: true,
   },
   integration: {
@@ -197,7 +205,7 @@ const afriChatConfig = {
       "Rester strictement centre sur les fonctionnalites reelles de Vaultify.",
       "Ne pas inventer de fonctionnalites ou de integrations absentes.",
       "Toujours donner des actions concretes (rechercher, comparer, filtrer, sauvegarder, exporter).",
-      "Si l'utilisateur demande les modeles IA, citer: gpt-5.4-nano, gpt-5.4-mini, gpt-5.4, gpt-5.3-codex.",
+      "Si l'utilisateur demande les modeles IA, citer: gpt-5.5, gpt-5.4-mini, gpt-5.4, gpt-image-2.",
       "Si l'utilisateur demande qui a cree Vaultify, repondre: Elton Ronald Bill Hounnou, developpeur frontend.",
       "Preciser que les favoris et collections sont stockes localement dans le navigateur.",
       "Preciser que le token GitHub est optionnel mais utile pour augmenter les quotas API.",
@@ -212,18 +220,10 @@ const afriChatConfig = {
     visitorFaq,
   },
   api: {
-    chatEndpoint:
-      import.meta.env.VITE_AFRICHAT_CHAT_ENDPOINT ||
-      "https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-chat",
-    ttsEndpoint:
-      import.meta.env.VITE_AFRICHAT_TTS_ENDPOINT ||
-      "https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-tts",
-    realtimeTokenEndpoint:
-      import.meta.env.VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT ||
-      "https://ptvvdtwdxophgwrascpf.supabase.co/functions/v1/widget-realtime-token",
-    siteKey:
-      import.meta.env.VITE_AFRICHAT_SITE_KEY ||
-      "afc_live_xxxxxxxxxxxx.yyyyyyyyyyyyyyyy",
+    chatEndpoint: defaultChatEndpoint,
+    ttsEndpoint: defaultTtsEndpoint,
+    realtimeTokenEndpoint: defaultRealtimeTokenEndpoint,
+    siteKey: defaultSiteKey,
   },
 };
 

@@ -1,1 +1,16 @@
 project_id = "uogmbkbbztoouqneefeg"
+
+[functions.ai-proxy]
+verify_jwt = false
+
+[functions.image-proxy]
+verify_jwt = false
+
+[functions.widget-chat]
+verify_jwt = false
+
+[functions.widget-tts]
+verify_jwt = false
+
+[functions.widget-realtime-token]
+verify_jwt = false

@@ -18,41 +18,26 @@ function isDevAsset(url, request) {
   return false;
 }
 
-// Install: cache static assets
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET
   if (request.method !== "GET") return;
-
-  // Never cache Vite dev/HMR assets.
   if (isDevAsset(url, request)) return;
 
-  // API calls: network-first with cache fallback
-  if (
-    url.hostname === "api.github.com" ||
-    url.hostname === "api.groq.com" ||
-    url.hostname === "build.lewisnote.com"
-  ) {
+  if (url.hostname === "api.github.com") {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -67,15 +52,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests: network-first, fallback to cached index.html
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match("/index.html"))
-    );
+    event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
     return;
   }
 
-  // Static assets: cache-first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
@@ -90,7 +71,6 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Listen for messages to cache favorites data
 self.addEventListener("message", (event) => {
   if (event.data?.type === "CACHE_FAVORITES") {
     const favoritesData = event.data.payload;

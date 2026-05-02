@@ -22,16 +22,7 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 min
 const Results = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
-  const {
-    aiModel,
-    lewisApiKey,
-    githubToken,
-    addTokens,
-    addSearchLog,
-    favorites,
-    cachedSearch,
-    setCachedSearch,
-  } = useStore();
+  const { aiModel, githubToken, addTokens, addSearchLog, favorites, cachedSearch, setCachedSearch } = useStore();
 
   const [results, setResults] = useState<EnrichedRepo[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -61,7 +52,7 @@ const Results = () => {
 
       if (aiEnabled) {
         try {
-          const { queries: reformulated, tokens } = await reformulateQuery(lewisApiKey, aiModel, q);
+          const { queries: reformulated, tokens } = await reformulateQuery(undefined, aiModel, q);
           queries = reformulated.length > 0 ? reformulated : [q];
           totalTokens += tokens;
         } catch (e) {
@@ -82,9 +73,7 @@ const Results = () => {
 
       if (aiEnabled && repos.length > 0) {
         try {
-          const { results: scored, tokens } = await scoreAndSummarize(
-            lewisApiKey,
-            aiModel,
+          const { results: scored, tokens } = await scoreAndSummarize(undefined, aiModel,
             q,
             repos.slice(0, 40)
           );
@@ -110,7 +99,7 @@ const Results = () => {
           enrichedResults = [...enriched, ...unscored];
 
           try {
-            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(lewisApiKey, aiModel, q);
+            const { suggestions: sug, tokens: sugTokens } = await generateSuggestions(undefined, aiModel, q);
             nextSuggestions = sug;
             setSuggestions(sug);
             totalTokens += sugTokens;
