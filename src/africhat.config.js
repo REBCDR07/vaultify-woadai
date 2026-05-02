@@ -15,6 +15,7 @@ const defaultTtsEndpoint =
 const defaultRealtimeTokenEndpoint =
   import.meta.env.VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT ||
   (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-realtime-token` : "");
+const defaultSiteKey = import.meta.env.VITE_AFRICHAT_SITE_KEY || "";
 
 const creatorProfile = {
   name: "Elton Ronald Bill Hounnou",
