@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_AI_BASE_URL?: string;
   readonly VITE_AI_CHAT_ENDPOINT?: string;
   readonly VITE_AI_IMAGE_ENDPOINT?: string;
   readonly VITE_AFRICHAT_SITE_KEY?: string;

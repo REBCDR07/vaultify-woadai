@@ -71,6 +71,7 @@ Les appels IA passent par des routes API Vercel deployees. Aucun secret n'est de
 - Package: `my-africhat`
 - Montage automatique dans `src/main.tsx`
 - Configuration centralisee: `src/africhat.config.js`
+- Position: bas droite en mode flottant
 - Endpoints deployes: `widget-chat`, `widget-tts`, `widget-realtime-token`
 - Audio active par defaut; le bouton permet de couper/rallumer le son, et le replay utilise le TTS quand il est configure.
 
@@ -126,6 +127,7 @@ npm run test
 
 Cote frontend:
 
+- `VITE_AI_BASE_URL` (optionnel, sinon `/api/*`)
 - `VITE_AFRICHAT_SITE_KEY`
 - `VITE_AFRICHAT_CHAT_ENDPOINT` (optionnel, sinon `/api/widget-chat`)
 - `VITE_AFRICHAT_TTS_ENDPOINT` (optionnel, sinon `/api/widget-tts`)

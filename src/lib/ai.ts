@@ -22,9 +22,9 @@ const resolveEndpoint = (explicitValue: string | undefined, baseUrl: string, pat
   return `/api/${path}`;
 };
 
-const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
-const chatEndpoint = resolveEndpoint(import.meta.env.VITE_AI_CHAT_ENDPOINT, apiBaseUrl, "ai-proxy");
-const imageEndpoint = resolveEndpoint(import.meta.env.VITE_AI_IMAGE_ENDPOINT, apiBaseUrl, "image-proxy");
+const aiBaseUrl = normalizeUrl(import.meta.env.VITE_AI_BASE_URL || import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
+const chatEndpoint = resolveEndpoint(import.meta.env.VITE_AI_CHAT_ENDPOINT, aiBaseUrl, "ai-proxy");
+const imageEndpoint = resolveEndpoint(import.meta.env.VITE_AI_IMAGE_ENDPOINT, aiBaseUrl, "image-proxy");
 
 export interface AIMessage {
   role: "system" | "user" | "assistant";

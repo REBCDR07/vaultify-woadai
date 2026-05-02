@@ -147,7 +147,7 @@ const afriChatConfig = {
     multilingual: true,
   },
   integration: {
-    mode: "fullscreen",
+    mode: "floating",
     zIndex: 999999,
     position: "bottom-right",
   },
