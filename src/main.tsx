@@ -14,7 +14,9 @@ const isInIframe = (() => {
 
 const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com");
+  window.location.hostname.includes("lovableproject.com") ||
+  window.location.hostname.endsWith(".vercel.app") ||
+  window.location.hostname.includes("vercel");
 
 const shouldRegisterServiceWorker =
   import.meta.env.PROD && !isInIframe && !isPreviewHost;
@@ -50,10 +52,12 @@ if ("serviceWorker" in navigator && shouldRegisterServiceWorker) {
   });
 } else {
   // Dev/preview/iframe contexts must stay SW-free to avoid stale module caches.
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
-    .catch(() => undefined);
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
+      .catch(() => undefined);
+  }
 
   caches
     .keys()
