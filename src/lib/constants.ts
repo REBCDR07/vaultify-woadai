@@ -32,7 +32,7 @@ export const AI_MODELS = [
 
 export const DEFAULT_MODEL = "gpt-5.4-pro";
 export const REPO_ANALYSIS_MODEL = "gpt-5.4-pro";
-export const IMAGE_PROMPT_MODEL = "gpt-5.4-pro";
+export const IMAGE_PROMPT_MODEL = "gpt-5.4-mini";
 export const IMAGE_MODEL = "gpt-image-2";
 
 export const CATEGORIES = [

@@ -411,7 +411,7 @@ export async function generateRepoDetail(
       },
       {
         role: "user",
-        content: `Repo: ${repoData.full_name}\nDescription: ${repoData.description}\nREADME (extrait): ${(repoData.readme || "").slice(0, 8000)}`,
+        content: `Repo: ${repoData.full_name}\nDescription: ${repoData.description}\nREADME (extrait): ${(repoData.readme || "").slice(0, 4000)}`,
       },
     ],
     { reasoningEffort: "medium", webSearch: true }
@@ -520,7 +520,7 @@ export async function generateRepoIllustrationPlan(
         role: "user",
         content: `Repo: ${repoData.full_name}
 Description: ${repoData.description}
-README: ${(repoData.readme || "").slice(0, 3500)}
+README: ${(repoData.readme || "").slice(0, 2000)}
 Analysis: ${JSON.stringify(aiDetail || {})}
 Target image count: ${desiredCount}
 Layout: ${layout}`,

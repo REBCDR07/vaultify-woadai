@@ -16,7 +16,12 @@ export function jsonResponse(payload: unknown, status = 200, extraHeaders: Heade
   });
 }
 
-export function rawResponse(body: BodyInit | null, status = 200, contentType = "text/plain", extraHeaders: HeadersInit = {}): Response {
+export function rawResponse(
+  body: BodyInit | null,
+  status = 200,
+  contentType = "text/plain",
+  extraHeaders: HeadersInit = {}
+): Response {
   return new Response(body, {
     status,
     headers: {
@@ -88,6 +93,7 @@ export async function proxyJsonRequest(
     baseUrl?: string;
     keyPrefix?: string;
     stream?: boolean;
+    signal?: AbortSignal;
   } = {}
 ): Promise<Response> {
   const baseUrl = (options.baseUrl || getBaseUrl()).trim();
@@ -112,6 +118,7 @@ export async function proxyJsonRequest(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: options.signal,
     });
 
     if (upstream.ok) {

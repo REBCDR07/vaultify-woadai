@@ -1,6 +1,6 @@
 import { corsHeaders, jsonResponse, proxyJsonRequest } from "./_shared/proxy";
 
-export const config = { runtime: "edge" };
+export const maxDuration = 300;
 
 interface ImageRequest {
   model: string;
@@ -12,7 +12,7 @@ interface ImageRequest {
   output_format?: "png" | "jpg" | "webp";
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handle(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -25,16 +25,22 @@ export default async function handler(request: Request): Promise<Response> {
       return jsonResponse({ error: "model + prompt requis" }, 400);
     }
 
-    return await proxyJsonRequest("/images/generations", {
-      model,
-      prompt,
-      size,
-      quality,
-      n,
-      background,
-      output_format,
-    });
+    return await proxyJsonRequest(
+      "/images/generations",
+      {
+        model,
+        prompt,
+        size,
+        quality,
+        n,
+        background,
+        output_format,
+      },
+      { signal: request.signal }
+    );
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
+
+export default { fetch: handle };

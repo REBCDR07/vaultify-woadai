@@ -1,6 +1,6 @@
 import { corsHeaders, jsonResponse, proxyJsonRequest } from "./_shared/proxy";
 
-export const config = { runtime: "edge" };
+export const maxDuration = 300;
 
 interface ProxyRequest {
   model: string;
@@ -12,7 +12,7 @@ interface ProxyRequest {
   response_format?: unknown;
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handle(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -36,8 +36,10 @@ export default async function handler(request: Request): Promise<Response> {
     if (web_search) payload.web_search = true;
     if (response_format) payload.response_format = response_format;
 
-    return await proxyJsonRequest("/chat/completions", payload, { stream });
+    return await proxyJsonRequest("/chat/completions", payload, { stream, signal: request.signal });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
+
+export default { fetch: handle };

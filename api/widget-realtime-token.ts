@@ -1,8 +1,8 @@
 import { assertSiteKey, corsHeaders, getEnv, jsonResponse } from "./_shared/proxy";
 
-export const config = { runtime: "edge" };
+export const maxDuration = 30;
 
-export default async function handler(request: Request): Promise<Response> {
+async function handle(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -17,3 +17,5 @@ export default async function handler(request: Request): Promise<Response> {
 
   return jsonResponse({ token });
 }
+
+export default { fetch: handle };

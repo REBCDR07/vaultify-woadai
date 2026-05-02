@@ -154,7 +154,7 @@ const RepoDetail = () => {
         {
           layout: illustrationLayout,
           maxImages: illustrationMaxImages,
-          quality: "high",
+          quality: "medium",
           concurrency: 1,
           onImageGenerated: (index, url) => {
             setIllustrations((prev) => {

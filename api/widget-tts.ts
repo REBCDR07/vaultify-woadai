@@ -1,6 +1,6 @@
 import { assertSiteKey, corsHeaders, getBaseUrl, getEnv, getServerKeys, rawResponse, jsonResponse } from "./_shared/proxy";
 
-export const config = { runtime: "edge" };
+export const maxDuration = 180;
 
 interface TtsRequest {
   input: string;
@@ -8,7 +8,7 @@ interface TtsRequest {
   response_format?: string;
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handle(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -47,6 +47,7 @@ export default async function handler(request: Request): Promise<Response> {
           voice: body.voice || getEnv("AFRICHAT_TTS_VOICE", "VITE_AFRICHAT_TTS_VOICE", "AI_TTS_VOICE", "VITE_AI_TTS_VOICE") || "alloy",
           response_format: body.response_format || "mp3",
         }),
+        signal: request.signal,
       });
 
       if (upstream.ok) {
@@ -63,3 +64,5 @@ export default async function handler(request: Request): Promise<Response> {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
+
+export default { fetch: handle };

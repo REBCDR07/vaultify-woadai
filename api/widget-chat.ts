@@ -1,6 +1,6 @@
 import { assertSiteKey, corsHeaders, getEnv, jsonResponse, proxyJsonRequest } from "./_shared/proxy";
 
-export const config = { runtime: "edge" };
+export const maxDuration = 300;
 
 const SUPPORTED_MODELS = new Set(["gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.3-codex"]);
 
@@ -40,7 +40,7 @@ function buildSystemPrompt(): string {
   ].join(" ");
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handle(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -66,12 +66,17 @@ export default async function handler(request: Request): Promise<Response> {
     if (forwardAudio && body.audio?.enabled) {
       payload.audio = {
         enabled: true,
-        voice: body.audio.voice || getEnv("AFRICHAT_TTS_VOICE", "VITE_AFRICHAT_TTS_VOICE", "AI_TTS_VOICE", "VITE_AI_TTS_VOICE") || "alloy",
+        voice:
+          body.audio.voice ||
+          getEnv("AFRICHAT_TTS_VOICE", "VITE_AFRICHAT_TTS_VOICE", "AI_TTS_VOICE", "VITE_AI_TTS_VOICE") ||
+          "alloy",
       };
     }
 
-    return await proxyJsonRequest("/chat/completions", payload, { stream: body.stream ?? true });
+    return await proxyJsonRequest("/chat/completions", payload, { stream: body.stream ?? true, signal: request.signal });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
+
+export default { fetch: handle };
