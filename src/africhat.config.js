@@ -58,7 +58,7 @@ const aiIntegration = {
     "Analyse detaillee des repositories",
     "Analyse de profils developpeurs",
   ],
-  models: ["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-image-2"],
+  models: ["gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-image-2"],
   endpoint: "POST /chat/completions",
   provider: "openai-compatible",
   enabledParameters: ["reasoning_effort", "web_search", "stream=false"],
@@ -116,7 +116,7 @@ const visitorFaq = [
   },
   {
     question: "Quels modeles IA sont disponibles ?",
-    answer: "GPT-5.5, GPT-5.4 Mini, GPT-5.4 et GPT Image 2.",
+    answer: "GPT-5.4 Pro, GPT-5.4 Mini, GPT-5.3 Codex et GPT Image 2.",
   },
   {
     question: "Comment Vaultify classe les repositories ?",
@@ -148,7 +148,7 @@ const afriChatConfig = {
   },
   assistant: {
     tone: "friendly",
-    model: "gpt-5.4",
+    model: "gpt-5.4-pro",
     voice: "alloy",
     persona: "Conseiller produit Vaultify",
     web_search: false,
@@ -219,7 +219,7 @@ const afriChatConfig = {
       "Rester strictement centre sur les fonctionnalites reelles de Vaultify.",
       "Ne pas inventer de fonctionnalites ou de integrations absentes.",
       "Toujours donner des actions concretes (rechercher, comparer, filtrer, sauvegarder, exporter).",
-      "Si l'utilisateur demande les modeles IA, citer: gpt-5.5, gpt-5.4-mini, gpt-5.4, gpt-image-2.",
+      "Si l'utilisateur demande les modeles IA, citer: gpt-5.4-pro, gpt-5.4-mini, gpt-5.3-codex, gpt-image-2.",
       "Si l'utilisateur demande qui a cree Vaultify, repondre: Elton Ronald Bill Hounnou, developpeur frontend.",
       "Preciser que les favoris et collections sont stockes localement dans le navigateur.",
       "Preciser que le token GitHub est optionnel mais utile pour augmenter les quotas API.",

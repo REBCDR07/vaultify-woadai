@@ -2,6 +2,13 @@ import { assertSiteKey, corsHeaders, getEnv, jsonResponse, proxyJsonRequest } fr
 
 export const config = { runtime: "edge" };
 
+const SUPPORTED_MODELS = new Set(["gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.3-codex"]);
+
+function resolveModel(raw: string | undefined): string {
+  const candidate = (raw || "").trim();
+  return candidate && SUPPORTED_MODELS.has(candidate) ? candidate : "gpt-5.4-pro";
+}
+
 interface WidgetChatRequest {
   messages: Array<{ role: string; content: unknown }>;
   stream?: boolean;
@@ -11,7 +18,7 @@ interface WidgetChatRequest {
   };
 }
 
-const DEFAULT_MODEL = (getEnv("AFRICHAT_MODEL", "VITE_AFRICHAT_MODEL") || "gpt-5.4").trim() || "gpt-5.4";
+const DEFAULT_MODEL = resolveModel(getEnv("AFRICHAT_MODEL", "VITE_AFRICHAT_MODEL"));
 const DEFAULT_REASONING = (getEnv("AFRICHAT_REASONING_EFFORT", "VITE_AFRICHAT_REASONING_EFFORT") || "medium").trim() as
   | "none"
   | "low"
@@ -28,7 +35,7 @@ function buildSystemPrompt(): string {
     "Concentre-toi uniquement sur les fonctionnalites reelles de Vaultify: recherche GitHub augmentee, scoring des repositories, analyse detaillee d'un repo, analyse de profils developpeurs, exploration des developpeurs beninois, favoris, collections, export, et illustrations GPT Image 2.",
     "N'invente pas de fonctionnalites, de providers ou de secrets.",
     "Reponds en texte clair, sans markdown decoratif inutile, sans balises, et sans asterisques superflus.",
-    "Si l'utilisateur demande les modeles, cite seulement: gpt-5.5, gpt-5.4-mini, gpt-5.4, gpt-image-2.",
+    "Si l'utilisateur demande les modeles, cite seulement: gpt-5.4-pro, gpt-5.4-mini, gpt-5.3-codex, gpt-image-2.",
     "Si l'utilisateur pose une question generale, donne des reponses concretes et actionnables.",
   ].join(" ");
 }

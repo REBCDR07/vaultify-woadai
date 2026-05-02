@@ -2,11 +2,11 @@
 
 export const AI_MODELS = [
   {
-    id: "gpt-5.5",
-    name: "GPT-5.5",
-    speed: "Très rapide",
-    badge: "Recherche",
-    description: "Modèle avancé nouvelle génération avec vision.",
+    id: "gpt-5.4-pro",
+    name: "GPT-5.4 Pro",
+    speed: "Le plus puissant",
+    badge: "Analyse",
+    description: "Modèle thinking principal avec vision pour l'analyse de repositories et de profils.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
@@ -14,25 +14,25 @@ export const AI_MODELS = [
     id: "gpt-5.4-mini",
     name: "GPT-5.4 Mini",
     speed: "Équilibré",
-    badge: "Web Search",
-    description: "Modèle thinking équilibré avec support vision et web search.",
+    badge: "Recherche",
+    description: "Modèle plus rapide pour reformulation, scoring et suggestions.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
   {
-    id: "gpt-5.4",
-    name: "GPT-5.4",
-    speed: "Créatif",
-    badge: "Illustration",
-    description: "Modèle créatif pour les briefs d'illustration GPT Image 2.",
+    id: "gpt-5.3-codex",
+    name: "GPT-5.3 Codex",
+    speed: "Code",
+    badge: "Vision",
+    description: "Modèle spécialisé code avec vision pour les cas techniques lourds.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
 ] as const;
 
-export const DEFAULT_MODEL = "gpt-5.5";
-export const REPO_ANALYSIS_MODEL = "gpt-5.5";
-export const IMAGE_PROMPT_MODEL = "gpt-5.4";
+export const DEFAULT_MODEL = "gpt-5.4-pro";
+export const REPO_ANALYSIS_MODEL = "gpt-5.4-pro";
+export const IMAGE_PROMPT_MODEL = "gpt-5.4-pro";
 export const IMAGE_MODEL = "gpt-image-2";
 
 export const CATEGORIES = [

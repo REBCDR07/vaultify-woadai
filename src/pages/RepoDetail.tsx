@@ -333,7 +333,7 @@ const RepoDetail = () => {
                   <div>
                     <p className="font-label text-xs uppercase tracking-wider text-muted-foreground">Parametres illustration</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      GPT-5.4 prepare le brief, GPT Image 2 genere le carrousel en 8K ultra.
+                      GPT-5.4 Pro prepare le brief, GPT Image 2 genere le carrousel en 8K ultra.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

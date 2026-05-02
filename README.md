@@ -36,9 +36,9 @@ Vaultify est une application web de decouverte GitHub assistee par IA. Elle tran
 
 Modeles texte disponibles:
 
-- `gpt-5.5`
+- `gpt-5.4-pro`
 - `gpt-5.4-mini`
-- `gpt-5.4`
+- `gpt-5.3-codex`
 
 Modele image:
 
@@ -50,7 +50,7 @@ Role des couches IA:
 - Scoring et synthese: score (0-100), resume, cas d'usage et points forts.
 - Suggestions: propositions de recherches connexes.
 - Analyse detaillee repo: synthese approfondie avec focus technique.
-- Illustration repo: GPT-5.4 genere un plan de prompts, GPT Image 2 produit un carrousel paysage 8k ultra de 3 a 10 images.
+- Illustration repo: GPT-5.4 Pro genere un plan de prompts, GPT Image 2 produit un carrousel paysage 8k ultra de 3 a 10 images.
 - Assistant conversationnel: widget My AfriChat branche via routes API Vercel.
 
 Les appels IA passent par des routes API Vercel deployees. Aucun secret n'est demande aux utilisateurs.
@@ -140,7 +140,7 @@ Cote serveur / Vercel:
 - `AI_TTS_BASE_URL` (optionnel)
 - `AI_TTS_API_KEY_1` a `AI_TTS_API_KEY_5` (optionnel)
 - `AFRICHAT_SITE_KEY`
-- `AFRICHAT_MODEL` (optionnel, defaut `gpt-5.4-mini`)
+- `AFRICHAT_MODEL` (optionnel, defaut `gpt-5.4-pro`)
 - `AFRICHAT_REASONING_EFFORT` (optionnel, defaut `medium`)
 - `AFRICHAT_TTS_MODEL` (optionnel)
 - `AFRICHAT_TTS_VOICE` (optionnel)
