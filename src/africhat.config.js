@@ -8,15 +8,13 @@ const parseEnvBoolean = (value, fallback = true) => {
 };
 
 const normalizeUrl = (value) => (value || "").trim().replace(/\/+$/, "");
-const supabaseUrl = normalizeUrl(import.meta.env.VITE_SUPABASE_URL || "");
-const afriChatBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
+const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
 const defaultSiteKey = (import.meta.env.VITE_AFRICHAT_SITE_KEY || "").trim();
 
 const resolveEndpoint = (explicitValue, path) => {
   const explicit = normalizeUrl(explicitValue || "");
   if (explicit) return explicit;
-  if (afriChatBaseUrl) return `${afriChatBaseUrl}/${path}`;
-  if (supabaseUrl) return `${supabaseUrl}/functions/v1/${path}`;
+  if (apiBaseUrl) return `${apiBaseUrl}/${path}`;
   return `/api/${path}`;
 };
 

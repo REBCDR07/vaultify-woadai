@@ -3,7 +3,6 @@ import { corsHeaders, jsonResponse, proxyJsonRequest } from "../_shared/proxy.ts
 interface ProxyRequest {
   model: string;
   messages: Array<{ role: string; content: unknown }>;
-  temperature?: number;
   max_tokens?: number;
   reasoning_effort?: "none" | "low" | "medium" | "high";
   web_search?: boolean;
@@ -18,7 +17,7 @@ Deno.serve(async (request) => {
 
   try {
     const body = (await request.json()) as ProxyRequest;
-    const { model, messages, temperature = 0.5, max_tokens = 4096, reasoning_effort, web_search, stream = false, response_format } = body;
+    const { model, messages, max_tokens = 4096, reasoning_effort, web_search, stream = false, response_format } = body;
 
     if (!model || !Array.isArray(messages) || messages.length === 0) {
       return jsonResponse({ error: "model + messages requis" }, 400);
@@ -27,7 +26,6 @@ Deno.serve(async (request) => {
     const payload: Record<string, unknown> = {
       model,
       messages,
-      temperature,
       max_tokens,
       stream,
     };

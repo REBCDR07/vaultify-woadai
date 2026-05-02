@@ -1,11 +1,10 @@
 // AI client routed through deploy-time proxy endpoints.
 
 import { IMAGE_MODEL, IMAGE_PROMPT_MODEL } from "@/lib/constants";
-
 const normalizeUrl = (value: string) => (value || "").trim().replace(/\/+$/, "");
-const supabaseUrl = normalizeUrl(import.meta.env.VITE_SUPABASE_URL || "");
-const chatEndpoint = normalizeUrl(import.meta.env.VITE_AI_CHAT_ENDPOINT || "") || (supabaseUrl ? `${supabaseUrl}/functions/v1/ai-proxy` : "/api/ai-proxy");
-const imageEndpoint = normalizeUrl(import.meta.env.VITE_AI_IMAGE_ENDPOINT || "") || (supabaseUrl ? `${supabaseUrl}/functions/v1/image-proxy` : "/api/image-proxy");
+const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
+const chatEndpoint = normalizeUrl(import.meta.env.VITE_AI_CHAT_ENDPOINT || "") || (apiBaseUrl ? `${apiBaseUrl}/ai-proxy` : "/api/ai-proxy");
+const imageEndpoint = normalizeUrl(import.meta.env.VITE_AI_IMAGE_ENDPOINT || "") || (apiBaseUrl ? `${apiBaseUrl}/image-proxy` : "/api/image-proxy");
 
 export interface AIMessage {
   role: "system" | "user" | "assistant";
