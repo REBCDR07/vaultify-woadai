@@ -7,15 +7,18 @@ const parseEnvBoolean = (value, fallback = true) => {
   return !["0", "false", "no", "off"].includes(normalized);
 };
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
-const defaultChatEndpoint =
-  import.meta.env.VITE_AFRICHAT_CHAT_ENDPOINT || (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-chat` : "");
-const defaultTtsEndpoint =
-  import.meta.env.VITE_AFRICHAT_TTS_ENDPOINT || (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-tts` : "");
-const defaultRealtimeTokenEndpoint =
-  import.meta.env.VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT ||
-  (supabaseUrl ? `${supabaseUrl}/functions/v1/widget-realtime-token` : "");
-const defaultSiteKey = import.meta.env.VITE_AFRICHAT_SITE_KEY || "";
+const normalizeUrl = (value) => (value || "").trim().replace(/\/+$/, "");
+const supabaseUrl = normalizeUrl(import.meta.env.VITE_SUPABASE_URL || "");
+const afriChatBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
+const defaultSiteKey = (import.meta.env.VITE_AFRICHAT_SITE_KEY || "").trim();
+
+const resolveEndpoint = (explicitValue, path) => {
+  const explicit = normalizeUrl(explicitValue || "");
+  if (explicit) return explicit;
+  if (afriChatBaseUrl) return `${afriChatBaseUrl}/${path}`;
+  if (supabaseUrl) return `${supabaseUrl}/functions/v1/${path}`;
+  return `/api/${path}`;
+};
 
 const creatorProfile = {
   name: "Elton Ronald Bill Hounnou",
@@ -33,34 +36,35 @@ const featureHighlights = [
   "Analyse de profils developpeurs GitHub",
   "Exploration specialisee des developpeurs beninois",
   "Favoris, tags, notes, collections et exports JSON/Markdown",
-  "Assistant conversationnel My AfriChat branche via proxy Supabase",
-  "Illustration GPT Image 2 des repositories publics en carrousel",
+  "Assistant conversationnel My AfriChat avec audio TTS",
+  "Illustrations GPT Image 2 pour les repositories publics",
 ];
 
 const aiIntegration = {
-  models: ["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-image-2"],
-  enabledParameters: ["reasoning_effort", "web_search", "stream=false"],
   layers: [
-    "Reformulation de requete utilisateur en plusieurs requetes GitHub complementaires avec web search",
+    "Reformulation de requete utilisateur en plusieurs requetes GitHub complementaires",
     "Scoring de pertinence (0-100) et synthese de chaque repository",
     "Generation de suggestions de recherches",
     "Generation de carrousels d'images pour les repositories publics",
     "Analyse detaillee des repositories",
     "Analyse de profils developpeurs",
   ],
+  models: ["gpt-5.5", "gpt-5.4-mini", "gpt-5.4", "gpt-image-2"],
+  endpoint: "POST /chat/completions",
+  provider: "openai-compatible",
+  enabledParameters: ["reasoning_effort", "web_search", "stream=false"],
 };
 
 const workflow = [
   {
     step: "01",
     title: "Saisie du besoin",
-    detail:
-      "L'utilisateur decrit son besoin en langage naturel (stack, cas d'usage, contraintes techniques).",
+    detail: "L'utilisateur decrit son besoin en langage naturel (stack, cas d'usage, contraintes techniques).",
   },
   {
     step: "02",
     title: "Reformulation IA",
-    detail: "L'IA produit 4 requetes GitHub et active la recherche web pour couvrir differents angles.",
+    detail: "L'IA produit plusieurs requetes GitHub pour couvrir differents angles de recherche.",
   },
   {
     step: "03",
@@ -80,8 +84,7 @@ const workflow = [
   {
     step: "06",
     title: "Decision et capitalisation",
-    detail:
-      "L'utilisateur compare, sauvegarde en favoris, ajoute tags/notes, cree des collections et exporte.",
+    detail: "L'utilisateur compare, sauvegarde en favoris, ajoute tags/notes, cree des collections et exporte.",
   },
 ];
 
@@ -108,8 +111,7 @@ const visitorFaq = [
   },
   {
     question: "Comment Vaultify classe les repositories ?",
-    answer:
-      "L'IA reformule la demande, lance des recherches GitHub paralleles, fusionne les resultats puis attribue un score de pertinence.",
+    answer: "L'IA reformule la demande, lance des recherches GitHub paralleles, fusionne les resultats puis attribue un score de pertinence.",
   },
   {
     question: "Qui est le createur ?",
@@ -125,7 +127,7 @@ const afriChatConfig = {
     defaultLanguage: "fr",
     supportedLanguages: ["fr", "en"],
   },
-  version: 1,
+  version: 8,
   branding: {
     name: "Assistant Vaultify",
     accentColor: "#0a0a0a",
@@ -137,14 +139,15 @@ const afriChatConfig = {
   },
   assistant: {
     tone: "friendly",
-    voice: "nova",
-    persona:
-      "Conseiller produit Vaultify. Reponses claires, factuelles, actionnables, centrees sur les fonctionnalites reelles de la plateforme.",
-    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, false),
+    model: "gpt-5.4",
+    voice: "alloy",
+    persona: "Conseiller produit Vaultify",
+    web_search: false,
+    audioEnabled: parseEnvBoolean(import.meta.env.VITE_AFRICHAT_AUDIO_ENABLED, true),
     multilingual: true,
   },
   integration: {
-    mode: "floating",
+    mode: "fullscreen",
     zIndex: 999999,
     position: "bottom-right",
   },
@@ -201,6 +204,7 @@ const afriChatConfig = {
     ],
     homeSummary:
       "Vaultify aide a passer d'une intention a une decision: reformulation IA, recherche GitHub parallele, scoring, synthese et capitalisation en favoris/collections.",
+    aiIntegration,
     businessRules: [
       "Repondre en francais par defaut et en anglais si l'utilisateur ecrit en anglais.",
       "Rester strictement centre sur les fonctionnalites reelles de Vaultify.",
@@ -215,15 +219,17 @@ const afriChatConfig = {
     ],
     creatorProfile,
     featureHighlights,
-    aiIntegration,
     workflow,
     trustAndLimits,
     visitorFaq,
   },
   api: {
-    chatEndpoint: defaultChatEndpoint,
-    ttsEndpoint: defaultTtsEndpoint,
-    realtimeTokenEndpoint: defaultRealtimeTokenEndpoint,
+    chatEndpoint: resolveEndpoint(import.meta.env.VITE_AFRICHAT_CHAT_ENDPOINT, "widget-chat"),
+    ttsEndpoint: resolveEndpoint(import.meta.env.VITE_AFRICHAT_TTS_ENDPOINT, "widget-tts"),
+    realtimeTokenEndpoint: resolveEndpoint(
+      import.meta.env.VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT,
+      "widget-realtime-token"
+    ),
     siteKey: defaultSiteKey,
   },
 };

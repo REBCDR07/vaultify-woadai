@@ -1,11 +1,11 @@
-// AI client routed through Supabase edge functions.
+// AI client routed through deploy-time proxy endpoints.
 
 import { IMAGE_MODEL, IMAGE_PROMPT_MODEL } from "@/lib/constants";
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
-const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "").trim();
-const CHAT_PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/ai-proxy` : "";
-const IMAGE_PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/image-proxy` : "";
+const normalizeUrl = (value: string) => (value || "").trim().replace(/\/+$/, "");
+const supabaseUrl = normalizeUrl(import.meta.env.VITE_SUPABASE_URL || "");
+const chatEndpoint = normalizeUrl(import.meta.env.VITE_AI_CHAT_ENDPOINT || "") || (supabaseUrl ? `${supabaseUrl}/functions/v1/ai-proxy` : "/api/ai-proxy");
+const imageEndpoint = normalizeUrl(import.meta.env.VITE_AI_IMAGE_ENDPOINT || "") || (supabaseUrl ? `${supabaseUrl}/functions/v1/image-proxy` : "/api/image-proxy");
 
 export interface AIMessage {
   role: "system" | "user" | "assistant";
@@ -68,12 +68,9 @@ interface DevProfileAnalysis {
   ranking: string;
 }
 
-function getApiKeyCandidates(_overrideKey?: string): string[] {
-  return [""];
-}
-
-function shouldRetryWithNextKey(_status: number): boolean {
-  return false;
+function getEndpointCandidates(kind: "chat" | "image"): string[] {
+  const endpoint = kind === "chat" ? chatEndpoint : imageEndpoint;
+  return endpoint ? [endpoint] : [];
 }
 
 function extractTextValue(value: unknown): string {
@@ -98,16 +95,9 @@ function extractImageUrl(entry: unknown, outputFormat: string): string {
 }
 
 function getProxyHeaders(): HeadersInit {
-  const headers: Record<string, string> = {
+  return {
     "Content-Type": "application/json",
   };
-
-  if (SUPABASE_KEY) {
-    headers.apikey = SUPABASE_KEY;
-    headers.Authorization = `Bearer ${SUPABASE_KEY}`;
-  }
-
-  return headers;
 }
 
 export function safeParseJSON<T = unknown>(raw: string, fallback: T): T {
@@ -131,65 +121,52 @@ export function safeParseJSON<T = unknown>(raw: string, fallback: T): T {
   }
 }
 
-async function postChatCompletion(_apiKey: string, body: Record<string, unknown>): Promise<Response> {
-  if (!CHAT_PROXY_URL) {
-    throw new Error("Missing Supabase AI proxy configuration.");
-  }
-
-  return fetch(CHAT_PROXY_URL, {
+async function postChatCompletion(endpoint: string, payload: Record<string, unknown>): Promise<Response> {
+  return fetch(endpoint, {
     method: "POST",
     headers: getProxyHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 }
 
-async function postImageGeneration(_apiKey: string, body: Record<string, unknown>): Promise<Response> {
-  if (!IMAGE_PROXY_URL) {
-    throw new Error("Missing Supabase image proxy configuration.");
-  }
-
-  return fetch(IMAGE_PROXY_URL, {
+async function postImageGeneration(endpoint: string, payload: Record<string, unknown>): Promise<Response> {
+  return fetch(endpoint, {
     method: "POST",
     headers: getProxyHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 }
 
 async function callWithFallback<T>(
-  apiKey: string | undefined,
-  executor: (key: string) => Promise<Response>,
+  endpoints: string[],
+  executor: (endpoint: string) => Promise<Response>,
   onSuccess: (response: Response) => Promise<T>
 ): Promise<T> {
-  const keyCandidates = getApiKeyCandidates(apiKey);
-  if (keyCandidates.length === 0) {
-    throw new Error("Missing Supabase proxy configuration.");
+  if (endpoints.length === 0) {
+    throw new Error("Missing proxy configuration.");
   }
 
   let lastError: string | null = null;
 
-  for (let i = 0; i < keyCandidates.length; i += 1) {
-    const key = keyCandidates[i];
-    const res = await executor(key);
+  for (const endpoint of endpoints) {
+    try {
+      const res = await executor(endpoint);
+      if (res.ok) {
+        return onSuccess(res);
+      }
 
-    if (res.ok) {
-      return onSuccess(res);
+      const detail = await res.text();
+      lastError = `Proxy error (${res.status}): ${detail}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
     }
-
-    const detail = await res.text();
-    lastError = `Proxy error (${res.status}): ${detail}`;
-
-    if (i < keyCandidates.length - 1 && shouldRetryWithNextKey(res.status)) {
-      continue;
-    }
-
-    throw new Error(lastError);
   }
 
   throw new Error(lastError || "Proxy error: all configured attempts failed.");
 }
 
 export function isAiConfigured(_overrideKey?: string): boolean {
-  return Boolean(CHAT_PROXY_URL);
+  return getEndpointCandidates("chat").length > 0;
 }
 
 export async function callAi(
@@ -199,9 +176,9 @@ export async function callAi(
   options: ChatOptions = {}
 ): Promise<{ content: string; tokens: number }> {
   return callWithFallback(
-    apiKey,
-    (key) =>
-      postChatCompletion(key, {
+    getEndpointCandidates("chat"),
+    (endpoint) =>
+      postChatCompletion(endpoint, {
         model,
         messages,
         stream: false,
@@ -230,8 +207,8 @@ export async function reformulateQuery(
         role: "system",
         content: `Tu es un expert en recherche GitHub.
 L'utilisateur décrit un besoin en langage naturel.
-Genere exactement 4 requetes GitHub Search API optimisées pour couvrir des angles differents.
-Reponds UNIQUEMENT avec un JSON array de 4 strings.`,
+Genere exactement 5 requetes GitHub Search API optimisées pour couvrir des angles differents.
+Reponds UNIQUEMENT avec un JSON array de 5 strings.`,
       },
       { role: "user", content: query },
     ],
@@ -240,7 +217,7 @@ Reponds UNIQUEMENT avec un JSON array de 4 strings.`,
 
   const parsed = safeParseJSON<string[]>(content, [query]);
   return {
-    queries: Array.isArray(parsed) && parsed.length > 0 ? parsed.slice(0, 4) : [query],
+    queries: Array.isArray(parsed) && parsed.length > 0 ? parsed.slice(0, 5) : [query],
     tokens,
   };
 }
@@ -294,7 +271,7 @@ Schema de chaque element:
         content: `Requete: "${originalQuery}"\n\nRepos:\n${JSON.stringify(repoList)}`,
       },
     ],
-    { reasoningEffort: "high", webSearch: false }
+    { reasoningEffort: "medium", webSearch: false }
   );
 
   const parsed = safeParseJSON<ScoredRepoResult[]>(content, []);
@@ -411,22 +388,14 @@ export async function generateRepoDetail(
     [
       {
         role: "system",
-        content: `Analyse ce repository GitHub en detail.
-Retourne UNIQUEMENT un JSON:
-{
-  "description": string,
-  "useCases": string,
-  "compatibleStack": string,
-  "strengths": string,
-  "similar": string[]
-}`,
+        content: `Analyse ce repository GitHub en detail. Retourne UNIQUEMENT un JSON avec description, useCases, compatibleStack, strengths et similar.`,
       },
       {
         role: "user",
         content: `Repo: ${repoData.full_name}\nDescription: ${repoData.description}\nREADME (extrait): ${(repoData.readme || "").slice(0, 8000)}`,
       },
     ],
-    { reasoningEffort: "high", webSearch: true }
+    { reasoningEffort: "medium", webSearch: true }
   );
 
   const detail = safeParseJSON<RepoDetailAnalysis>(content, {
@@ -526,32 +495,19 @@ export async function generateRepoIllustrationPlan(
     [
       {
         role: "system",
-        content: `Tu es directeur artistique et prompt engineer pour GPT-Image-2.
-Tu dois produire un plan d'illustration pour un repository GitHub public.
-Contraintes:
-- Réponds UNIQUEMENT avec un JSON object.
-- imageCount doit être exactement ${desiredCount}.
-- prompts doit contenir exactement ${desiredCount} prompts distincts.
-- Chaque prompt doit être en anglais.
-- Chaque prompt doit décrire une illustration ${layout === "landscape" ? "horizontal landscape" : layout === "square" ? "square" : "portrait vertical"}, ultra-détaillée, 8k ultra, cinématique.
-- Aucun texte, aucune watermark, aucun logo.
-- Chaque prompt doit illustrer un angle différent du repository: architecture, workflow, intégrations, expérience utilisateur, infrastructure, scalabilité, etc.
-- Le style doit rester cohérent sur tout le carrousel.
-- Ajoute un characterDescription cohérent pour un personnage 3D hero / mascotte si cela renforce la lisibilité visuelle.
-Schema:
-{ "title": string, "style": string, "characterDescription": string, "imageCount": number, "prompts": string[] }`,
+        content: `Tu es prompt engineer pour GPT Image 2. Reponds uniquement en JSON strict. Genere ${desiredCount} prompts distincts, coherents, en anglais, sans texte ni logo. Le style doit etre ${layout === "landscape" ? "horizontal landscape" : layout === "square" ? "square" : "portrait vertical"}, 8K ultra cinematique. Schema: { "title": string, "style": string, "characterDescription": string, "imageCount": number, "prompts": string[] }`,
       },
       {
         role: "user",
-        content: `Repository: ${repoData.full_name}
+        content: `Repo: ${repoData.full_name}
 Description: ${repoData.description}
-README: ${(repoData.readme || "").slice(0, 6000)}
+README: ${(repoData.readme || "").slice(0, 3500)}
 Analysis: ${JSON.stringify(aiDetail || {})}
 Target image count: ${desiredCount}
 Layout: ${layout}`,
       },
     ],
-    { reasoningEffort: "medium", webSearch: true }
+    { reasoningEffort: "low", webSearch: false }
   );
 
   const fallbackPrompts = buildFallbackIllustrationPrompts(repoData, aiDetail || {}, desiredCount, layout);
@@ -594,9 +550,9 @@ export async function generateRepoIllustration(
   const layout = options.layout || "landscape";
 
   return callWithFallback(
-    apiKey,
-    (key) =>
-      postImageGeneration(key, {
+    getEndpointCandidates("image"),
+    (endpoint) =>
+      postImageGeneration(endpoint, {
         model: IMAGE_MODEL,
         prompt,
         size: layoutToSize(layout, options.size),
@@ -627,7 +583,15 @@ export async function generateRepoIllustrations(
     forks_count?: number;
   },
   aiDetail?: { description?: string; useCases?: string; compatibleStack?: string; strengths?: string },
-  options: { maxImages?: number; layout?: "square" | "portrait" | "landscape"; quality?: ImageOptions["quality"] } = {}
+  options: {
+    maxImages?: number;
+    layout?: "square" | "portrait" | "landscape";
+    quality?: ImageOptions["quality"];
+    concurrency?: number;
+    onImageGenerated?: (index: number, url: string) => void;
+    onImageError?: (index: number, error: Error) => void;
+    onProgress?: (completed: number, total: number) => void;
+  } = {}
 ): Promise<{ plan: RepoIllustrationPlan; images: string[]; tokens: number }> {
   const { plan, tokens } = await generateRepoIllustrationPlan(apiKey, repoData, aiDetail, {
     maxImages: options.maxImages,
@@ -635,20 +599,37 @@ export async function generateRepoIllustrations(
   });
 
   const layout = options.layout || "landscape";
-  const results = await Promise.allSettled(
-    plan.prompts.map((prompt) =>
-      generateRepoIllustration(apiKey, prompt, {
-        layout,
-        quality: options.quality || "high",
-        background: "auto",
-        outputFormat: "png",
-      })
-    )
-  );
+  const concurrency = clamp(options.concurrency || 1, 1, 2);
+  const images = new Array<string>(plan.prompts.length).fill("");
+  let nextIndex = 0;
+  let completed = 0;
 
-  const images = results
-    .map((result) => (result.status === "fulfilled" ? result.value : ""))
-    .filter(Boolean);
+  const workers = Array.from({ length: Math.min(concurrency, plan.prompts.length) }, async () => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= plan.prompts.length) return;
+
+      try {
+        const url = await generateRepoIllustration(apiKey, plan.prompts[index], {
+          layout,
+          quality: options.quality || "high",
+          background: "auto",
+          outputFormat: "png",
+        });
+
+        images[index] = url;
+        options.onImageGenerated?.(index, url);
+      } catch (error) {
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        options.onImageError?.(index, normalizedError);
+      } finally {
+        completed += 1;
+        options.onProgress?.(completed, plan.prompts.length);
+      }
+    }
+  });
+
+  await Promise.all(workers);
 
   return { plan, images, tokens };
 }

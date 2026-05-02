@@ -10,6 +10,8 @@ const Settings = () => {
   const [showGhToken, setShowGhToken] = useState(false);
   const [ghSaved, setGhSaved] = useState(false);
 
+  const selectedModel = AI_MODELS.find((m) => m.id === aiModel) || AI_MODELS[0];
+
   const handleSaveGhToken = () => {
     setGithubToken(ghToken.trim());
     setGhSaved(true);
@@ -47,13 +49,13 @@ const Settings = () => {
           <div className="mt-4 space-y-4">
             <div className="rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground">
               <p>
-                Routage: <span className="text-foreground">proxy Supabase déployé</span>
+                Routage: <span className="text-foreground">proxies natifs du déploiement</span>
               </p>
               <p className="mt-1">
                 État: <span className="text-primary">actif</span>
               </p>
               <p className="mt-1">
-                Aucun secret n'est saisi par l'utilisateur, les modèles sont choisis ici et configurés au déploiement.
+                Aucun secret n'est saisi par l'utilisateur, les modèles et endpoints sont injectés au déploiement.
               </p>
             </div>
 
@@ -71,7 +73,7 @@ const Settings = () => {
                 ))}
               </select>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                GPT-5.5 accélère la recherche. GPT-5.4 Mini équilibre vitesse et qualité. GPT-5.4 sert aux prompts d'illustration GPT Image 2.
+                {selectedModel.description}
               </p>
             </div>
 

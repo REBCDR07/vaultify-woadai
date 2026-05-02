@@ -3,7 +3,10 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  readonly VITE_AI_CHAT_ENDPOINT?: string;
+  readonly VITE_AI_IMAGE_ENDPOINT?: string;
   readonly VITE_AFRICHAT_SITE_KEY?: string;
+  readonly VITE_AFRICHAT_API_BASE_URL?: string;
   readonly VITE_AFRICHAT_CHAT_ENDPOINT?: string;
   readonly VITE_AFRICHAT_TTS_ENDPOINT?: string;
   readonly VITE_AFRICHAT_REALTIME_TOKEN_ENDPOINT?: string;

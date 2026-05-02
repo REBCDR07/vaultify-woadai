@@ -35,7 +35,7 @@ const FAQS = [
   },
   {
     q: "Quels modèles IA sont intégrés ?",
-    a: "Vaultify propose GPT-5.4 Nano, GPT-5.4 Mini, GPT-5.4 et GPT-5.3 Codex. Le modèle est sélectionnable depuis les paramètres.",
+    a: "Vaultify propose GPT-5.5, GPT-5.4 Mini et GPT-5.4. Le modèle est sélectionnable depuis les paramètres.",
   },
   {
     q: "Comment Vaultify classe les repositories ?",
@@ -55,7 +55,7 @@ const IA_STACK = [
   {
     icon: <Bot className="h-5 w-5" />,
     title: "Moteur IA multi-modèles",
-    desc: "Choix entre GPT-5.4 Nano, GPT-5.4 Mini, GPT-5.4 et GPT-5.3 Codex selon le niveau de profondeur attendu.",
+    desc: "Choix entre GPT-5.5, GPT-5.4 Mini et GPT-5.4 selon le niveau de profondeur attendu.",
   },
   {
     icon: <GitBranch className="h-5 w-5" />,

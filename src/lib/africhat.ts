@@ -1,8 +1,6 @@
 import { createMyAfriChat } from "my-africhat";
 import afriChatConfig from "@/africhat.config.js";
 
-const PLACEHOLDER_SITE_KEY = "afc_live_xxxxxxxxxxxx.yyyyyyyyyyyyyyyy";
-
 let mounted = false;
 
 export function mountAfriChatWidget() {
@@ -11,7 +9,7 @@ export function mountAfriChatWidget() {
   const siteKey = typeof afriChatConfig?.api?.siteKey === "string" ? afriChatConfig.api.siteKey.trim() : "";
   const chatEndpoint = typeof afriChatConfig?.api?.chatEndpoint === "string" ? afriChatConfig.api.chatEndpoint.trim() : "";
 
-  if (!siteKey || siteKey === PLACEHOLDER_SITE_KEY || !chatEndpoint) {
+  if (!siteKey || !chatEndpoint) {
     console.info("[AfriChat] Widget non monte: configuration manquante.");
     return;
   }

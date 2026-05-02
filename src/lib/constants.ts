@@ -1,4 +1,4 @@
-// AI models served through the proxy layer.
+// AI models exposed in the settings and used by the search pipeline.
 
 export const AI_MODELS = [
   {
@@ -6,6 +6,7 @@ export const AI_MODELS = [
     name: "GPT-5.5",
     speed: "Très rapide",
     badge: "Recherche",
+    description: "Modèle avancé nouvelle génération avec vision.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
@@ -13,7 +14,8 @@ export const AI_MODELS = [
     id: "gpt-5.4-mini",
     name: "GPT-5.4 Mini",
     speed: "Équilibré",
-    badge: "Recommandé",
+    badge: "Web Search",
+    description: "Modèle thinking équilibré avec support vision et web search.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
@@ -22,12 +24,13 @@ export const AI_MODELS = [
     name: "GPT-5.4",
     speed: "Créatif",
     badge: "Illustration",
+    description: "Modèle créatif pour les briefs d'illustration GPT Image 2.",
     supportsWebSearch: true,
     supportsReasoning: true,
   },
 ] as const;
 
-export const DEFAULT_MODEL = "gpt-5.4-mini";
+export const DEFAULT_MODEL = "gpt-5.5";
 export const REPO_ANALYSIS_MODEL = "gpt-5.5";
 export const IMAGE_PROMPT_MODEL = "gpt-5.4";
 export const IMAGE_MODEL = "gpt-image-2";
