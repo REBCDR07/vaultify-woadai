@@ -1,22 +1,22 @@
 // AI client routed through deploy-time proxy endpoints.
 
 import { IMAGE_MODEL, IMAGE_PROMPT_MODEL } from "@/lib/constants";
+
 const normalizeUrl = (value: string) => (value || "").trim().replace(/\/+$/, "");
-const isLegacySupabaseUrl = (value: string) => /supabase\.co/i.test(value);
+const isRelativeApiEndpoint = (value: string) => value.startsWith("/api/");
+const isAbsoluteApiEndpoint = (value: string) => /^https?:\/\/[^/]+\/api(?:\/|$)/i.test(value);
 
 const resolveEndpoint = (explicitValue: string | undefined, baseUrl: string, path: string) => {
   const explicit = normalizeUrl(explicitValue || "");
   if (explicit) {
-    if (import.meta.env.PROD && isLegacySupabaseUrl(explicit)) return `/api/${path}`;
-    return explicit;
+    if (isRelativeApiEndpoint(explicit) || isAbsoluteApiEndpoint(explicit)) return explicit;
+    return `/api/${path}`;
   }
 
   const base = normalizeUrl(baseUrl || "");
   if (base) {
-    if (isLegacySupabaseUrl(base)) {
-      return import.meta.env.PROD ? `/api/${path}` : `${base}/functions/v1/${path}`;
-    }
-    return `${base}/${path}`;
+    if (base.startsWith("/")) return `${base}/${path}`;
+    if (isAbsoluteApiEndpoint(base)) return `${base}/${path}`;
   }
 
   return `/api/${path}`;

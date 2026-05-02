@@ -1,4 +1,4 @@
-import { assertSiteKey, corsHeaders, getBaseUrl, getServerKeys, rawResponse, jsonResponse } from "./_shared/proxy";
+import { assertSiteKey, corsHeaders, getBaseUrl, getEnv, getServerKeys, rawResponse, jsonResponse } from "./_shared/proxy";
 
 export const config = { runtime: "edge" };
 
@@ -24,14 +24,10 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const baseUrl = getBaseUrl("AI_TTS_BASE_URL") || getBaseUrl();
-    const model = (process.env.AFRICHAT_TTS_MODEL || process.env.AI_TTS_MODEL || "gpt-4o-mini-tts").trim();
+    const model = (getEnv("AFRICHAT_TTS_MODEL", "VITE_AFRICHAT_TTS_MODEL", "AI_TTS_MODEL", "VITE_AI_TTS_MODEL") || "gpt-4o-mini-tts").trim();
     const keyCandidates = getServerKeys("AI_TTS_API_KEY_").length > 0 ? getServerKeys("AI_TTS_API_KEY_") : getServerKeys();
 
-    if (!baseUrl) {
-      return jsonResponse({ error: "TTS base URL is not configured." }, 500);
-    }
-
-    if (keyCandidates.length === 0) {
+    if (!keyCandidates.length) {
       return jsonResponse({ error: "No TTS keys are configured." }, 500);
     }
 
@@ -48,7 +44,7 @@ export default async function handler(request: Request): Promise<Response> {
         body: JSON.stringify({
           model,
           input,
-          voice: body.voice || process.env.AFRICHAT_TTS_VOICE || "alloy",
+          voice: body.voice || getEnv("AFRICHAT_TTS_VOICE", "VITE_AFRICHAT_TTS_VOICE", "AI_TTS_VOICE", "VITE_AI_TTS_VOICE") || "alloy",
           response_format: body.response_format || "mp3",
         }),
       });

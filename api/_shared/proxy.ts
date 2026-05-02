@@ -27,20 +27,45 @@ export function rawResponse(body: BodyInit | null, status = 200, contentType = "
   });
 }
 
-export function getEnv(name: string): string {
+const DEFAULT_AI_BASE_URL = "https://build.lewisnote.com/v1";
+
+function readEnv(name: string): string {
   return (process.env[name] || "").trim();
 }
 
-export function getBaseUrl(name = "AI_BASE_URL"): string {
-  return getEnv(name).replace(/\/+$/, "");
+export function getEnv(...names: string[]): string {
+  for (const rawName of names) {
+    const name = (rawName || "").trim();
+    if (!name) continue;
+
+    const candidates = name.startsWith("VITE_") ? [name] : [name, `VITE_${name}`];
+    for (const candidate of candidates) {
+      const value = readEnv(candidate);
+      if (value) return value;
+    }
+  }
+
+  return "";
+}
+
+export function getBaseUrl(name = "AI_BASE_URL", fallback = DEFAULT_AI_BASE_URL): string {
+  return getEnv(name) || fallback;
 }
 
 export function getServerKeys(prefix = "AI_API_KEY_"): string[] {
+  const baseName = prefix.endsWith("_") ? prefix.slice(0, -1) : prefix;
+  const candidates = [baseName, ...Array.from({ length: 5 }, (_, index) => `${baseName}_${index + 1}`)];
   const keys: string[] = [];
-  for (let i = 1; i <= 5; i += 1) {
-    const value = getEnv(`${prefix}${i}`);
-    if (value) keys.push(value);
+  const seen = new Set<string>();
+
+  for (const name of candidates) {
+    const value = getEnv(name);
+    if (value && !seen.has(value)) {
+      seen.add(value);
+      keys.push(value);
+    }
   }
+
   return keys;
 }
 

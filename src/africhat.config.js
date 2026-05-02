@@ -1,20 +1,29 @@
 const normalizeUrl = (value) => (value || "").trim().replace(/\/+$/, "");
-const isLegacySupabaseUrl = (value) => /supabase\.co/i.test(value);
 const apiBaseUrl = normalizeUrl(import.meta.env.VITE_AFRICHAT_API_BASE_URL || "");
 const defaultSiteKey = (import.meta.env.VITE_AFRICHAT_SITE_KEY || "").trim();
+
+const isRelativeApiEndpoint = (value) => value.startsWith("/api/");
+const isAbsoluteApiEndpoint = (value) => /^https?:\/\/[^/]+\/api(?:\/|$)/i.test(value);
+const isSupabaseFunctionUrl = (value) => /supabase\.co\/functions\/v1\//i.test(value);
 
 const resolveEndpoint = (explicitValue, path) => {
   const explicit = normalizeUrl(explicitValue || "");
   if (explicit) {
-    if (import.meta.env.PROD && isLegacySupabaseUrl(explicit)) return `/api/${path}`;
+    if (isRelativeApiEndpoint(explicit) || isAbsoluteApiEndpoint(explicit)) return explicit;
+    if (import.meta.env.PROD && !isSupabaseFunctionUrl(explicit)) return `/api/${path}`;
     return explicit;
   }
 
   if (apiBaseUrl) {
-    if (isLegacySupabaseUrl(apiBaseUrl)) {
-      return import.meta.env.PROD ? `/api/${path}` : `${apiBaseUrl}/functions/v1/${path}`;
+    if (apiBaseUrl.startsWith("/")) {
+      return `${apiBaseUrl}/${path}`;
     }
-    return `${apiBaseUrl}/${path}`;
+    if (isAbsoluteApiEndpoint(apiBaseUrl)) {
+      return `${apiBaseUrl}/${path}`;
+    }
+    if (isSupabaseFunctionUrl(apiBaseUrl)) {
+      return import.meta.env.PROD ? `/api/${path}` : `${apiBaseUrl}/${path}`;
+    }
   }
 
   return `/api/${path}`;
